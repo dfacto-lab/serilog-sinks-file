@@ -1,6 +1,6 @@
-#The file sink for Serilog
+# Serilog.Sinks.File
 
-##NOTE: Work in progress as apart of the [Serilog 2.0 release](https://github.com/serilog/serilog/issues?q=is%3Aissue+is%3Aopen+label%3Av2).
+The file sink for Serilog.
 
 [![Build status](https://ci.appveyor.com/api/projects/status/hh9gymy0n6tne46j?svg=true)](https://ci.appveyor.com/project/serilog/serilog-sinks-file) [![NuGet Version](http://img.shields.io/nuget/v/Serilog.Sinks.File.svg?style=flat)](https://www.nuget.org/packages/Serilog.Sinks.File/)
 
