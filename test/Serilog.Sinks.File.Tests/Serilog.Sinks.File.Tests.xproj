@@ -6,8 +6,8 @@
   </PropertyGroup>
   <Import Project="$(VSToolsPath)\DNX\Microsoft.DNX.Props" Condition="'$(VSToolsPath)' != ''" />
   <PropertyGroup Label="Globals">
-    <ProjectGuid>57e0ed0e-0f45-48ab-a73d-6a92b7c32095</ProjectGuid>
-    <RootNamespace>Serilog</RootNamespace>
+    <ProjectGuid>3c2d8e01-5580-426a-bdd9-ec59cd98e618</ProjectGuid>
+    <RootNamespace>Serilog.Tests</RootNamespace>
     <BaseIntermediateOutputPath Condition="'$(BaseIntermediateOutputPath)'=='' ">.\obj</BaseIntermediateOutputPath>
     <OutputPath Condition="'$(OutputPath)'=='' ">.\bin\</OutputPath>
   </PropertyGroup>
