@@ -22,7 +22,7 @@ using Serilog.Sinks.File;
 
 namespace Serilog
 {
-    /// <summary>Extends <see cref="LoggerConfiguration"> with methods to add file sinks.</summary>
+    /// <summary>Extends <see cref="LoggerConfiguration"/> with methods to add file sinks.</summary>
     public static class FileLoggerConfigurationExtensions
     {
         const long DefaultFileSizeLimitBytes = 1L * 1024 * 1024 * 1024;
