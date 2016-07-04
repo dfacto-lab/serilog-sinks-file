@@ -2,20 +2,28 @@ Push-Location $PSScriptRoot
 
 if(Test-Path .\artifacts) { Remove-Item .\artifacts -Force -Recurse }
 
-& dotnet restore
+& dotnet restore --no-cache
 
-$revision = @{ $true = $env:APPVEYOR_BUILD_NUMBER; $false = 1 }[$env:APPVEYOR_BUILD_NUMBER -ne $NULL];
+$branch = $(git symbolic-ref --short -q HEAD)
+$revision = @{ $true = $env:APPVEYOR_BUILD_NUMBER; $false = "local" }[$env:APPVEYOR_BUILD_NUMBER -ne $NULL];
+$suffix = @{ $true = ""; $false = "$branch-$revision"}[$branch -eq "master" -and $revision -ne "local"]
 
-Push-Location src/Serilog.Sinks.File
+foreach ($src in ls src/Serilog.*) {
+    Push-Location $src
 
-& dotnet pack -c Release -o ..\..\.\artifacts --version-suffix=$revision
-if($LASTEXITCODE -ne 0) { exit 1 }    
+    & dotnet pack -c Release -o ..\..\.\artifacts --version-suffix=$suffix
+    if($LASTEXITCODE -ne 0) { exit 1 }    
 
-Pop-Location
-Push-Location test/Serilog.Sinks.File.Tests
+    Pop-Location
+}
 
-& dotnet test -c Release
-if($LASTEXITCODE -ne 0) { exit 2 }
+foreach ($test in ls test/Serilog.*.Tests) {
+    Push-Location $test
 
-Pop-Location
+    & dotnet test -c Release
+    if($LASTEXITCODE -ne 0) { exit 2 }
+
+    Pop-Location
+}
+
 Pop-Location
