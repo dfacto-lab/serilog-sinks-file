@@ -1,6 +1,6 @@
 ﻿{
   "version": "2.1.0-*",
-  "description": "The file sink for Serilog",
+  "description": "Write Serilog events to a text file in plain or JSON format.",
   "authors": [ "Serilog Contributors" ],
   "packOptions": {
     "tags": [ "serilog", "file", "io" ],
