@@ -14,12 +14,25 @@ To avoid bringing down apps with runaway disk usage the file sink **limits file 
     .WriteTo.File("log.txt", fileSizeLimitBytes: null)
 ```
 
-Or in XML [app-settings format](https://github.com/serilog/serilog/wiki/AppSettings):
+> **Important:** Only one process may write to a log file at a given time. For multi-process scenarios, either use separate files or one of the non-file-based sinks.
+
+### `<appSettings>` configuration
+
+The sink can be configured in XML [app-settings format](https://github.com/serilog/serilog/wiki/AppSettings) if the _Serilog.Settings.AppSettings_ package is in use:
 
 ```xml
 <add key="serilog:write-to:File.path" value="log.txt" />
+<add key="serilog:write-to:File.fileSizeLimitBytes" value="" />
 ```
 
-> **Important:** Only one process may write to a log file at a given time. For multi-process scenarios, either use separate files or one of the non-file-based sinks.
+### JSON formatting
 
-Copyright &copy; 2016 Serilog Contributors - Provided under the [Apache License, Version 2.0](http://apache.org/licenses/LICENSE-2.0.html).
+To emit JSON, rather than plain text, a formatter can be specified:
+
+```csharp
+    .WriteTo.File(new JsonFormatter(), "log.txt")
+```
+
+To configure an alternative formatter in XML `<appSettings>`, specify the formatter's assembly-qualified type name as the setting `value`.
+
+_Copyright &copy; 2016 Serilog Contributors - Provided under the [Apache License, Version 2.0](http://apache.org/licenses/LICENSE-2.0.html)._
