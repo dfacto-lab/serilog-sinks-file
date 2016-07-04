@@ -17,7 +17,9 @@ using Serilog.Configuration;
 using Serilog.Core;
 using Serilog.Debugging;
 using Serilog.Events;
+using Serilog.Formatting;
 using Serilog.Formatting.Display;
+using Serilog.Formatting.Json;
 using Serilog.Sinks.File;
 
 namespace Serilog
@@ -57,8 +59,45 @@ namespace Serilog
             bool buffered = false)
         {
             if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));
+            if (path == null) throw new ArgumentNullException(nameof(path));
             if (outputTemplate == null) throw new ArgumentNullException(nameof(outputTemplate));
+
             var formatter = new MessageTemplateTextFormatter(outputTemplate, formatProvider);
+            return File(sinkConfiguration, formatter, path, restrictedToMinimumLevel, fileSizeLimitBytes, levelSwitch, buffered);
+        }
+
+        /// <summary>
+        /// Write log events to the specified file.
+        /// </summary>
+        /// <param name="sinkConfiguration">Logger sink configuration.</param>
+        /// <param name="formatter">A formatter, such as <see cref="JsonFormatter"/>, to convert the log events into
+        /// text for the file. If control of regular text formatting is required, use the other
+        /// overload of <see cref="File(LoggerSinkConfiguration, string, LogEventLevel, string, IFormatProvider, long?, LoggingLevelSwitch, bool)"/>
+        /// and specify the outputTemplate parameter instead.
+        /// </param>
+        /// <param name="path">Path to the file.</param>
+        /// <param name="restrictedToMinimumLevel">The minimum level for
+        /// events passed through the sink. Ignored when <paramref name="levelSwitch"/> is specified.</param>
+        /// <param name="levelSwitch">A switch allowing the pass-through minimum level
+        /// to be changed at runtime.</param>
+        /// <param name="fileSizeLimitBytes">The maximum size, in bytes, to which a log file will be allowed to grow.
+        /// For unrestricted growth, pass null. The default is 1 GB.</param>
+        /// <param name="buffered">Indicates if flushing to the output file can be buffered or not. The default
+        /// is false.</param>
+        /// <returns>Configuration object allowing method chaining.</returns>
+        /// <remarks>The file will be written using the UTF-8 character set.</remarks>
+        public static LoggerConfiguration File(
+            this LoggerSinkConfiguration sinkConfiguration,
+            ITextFormatter formatter,
+            string path,
+            LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
+            long? fileSizeLimitBytes = DefaultFileSizeLimitBytes,
+            LoggingLevelSwitch levelSwitch = null,
+            bool buffered = false)
+        {
+            if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));
+            if (formatter == null) throw new ArgumentNullException(nameof(formatter));
+            if (path == null) throw new ArgumentNullException(nameof(path));
 
             FileSink sink;
             try
