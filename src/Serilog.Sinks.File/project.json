@@ -1,5 +1,5 @@
 ﻿{
-  "version": "2.1.0-*",
+  "version": "2.1.1-*",
   "description": "Write Serilog events to a text file in plain or JSON format.",
   "authors": [ "Serilog Contributors" ],
   "packOptions": {
