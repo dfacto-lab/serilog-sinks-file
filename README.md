@@ -21,6 +21,7 @@ To avoid bringing down apps with runaway disk usage the file sink **limits file 
 The sink can be configured in XML [app-settings format](https://github.com/serilog/serilog/wiki/AppSettings) if the _Serilog.Settings.AppSettings_ package is in use:
 
 ```xml
+<add key="serilog:using:File" value="Serilog.Sinks.File" />
 <add key="serilog:write-to:File.path" value="log.txt" />
 <add key="serilog:write-to:File.fileSizeLimitBytes" value="" />
 ```
