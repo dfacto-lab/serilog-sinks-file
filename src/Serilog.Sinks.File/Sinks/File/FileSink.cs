@@ -56,7 +56,7 @@ namespace Serilog.Sinks.File
             TryCreateDirectory(path);
 
             var file = System.IO.File.Open(path, FileMode.Append, FileAccess.Write, FileShare.Read);
-            var outputWriter = new StreamWriter(file, encoding ?? Encoding.UTF8);
+            var outputWriter = new StreamWriter(file, encoding ?? new UTF8Encoding(false));
             if (fileSizeLimitBytes != null)
             {
                 var initialBytes = file.Length;
