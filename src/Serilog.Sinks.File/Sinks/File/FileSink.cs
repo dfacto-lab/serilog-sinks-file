@@ -13,7 +13,7 @@
 // limitations under the License.
 
 using System;
-using System.IO; 
+using System.IO;
 using System.Text;
 using Serilog.Core;
 using Serilog.Debugging;
@@ -56,7 +56,7 @@ namespace Serilog.Sinks.File
             TryCreateDirectory(path);
 
             var file = System.IO.File.Open(path, FileMode.Append, FileAccess.Write, FileShare.Read);
-            var outputWriter = new StreamWriter(file, encoding ?? new UTF8Encoding(false));
+            var outputWriter = new StreamWriter(file, encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
             if (fileSizeLimitBytes != null)
             {
                 var initialBytes = file.Length;
