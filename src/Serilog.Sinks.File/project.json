@@ -1,5 +1,5 @@
 ﻿{
-  "version": "2.1.0-*",
+  "version": "2.2.0-*",
   "description": "Write Serilog events to a text file in plain or JSON format.",
   "authors": [ "Serilog Contributors" ],
   "packOptions": {
@@ -21,7 +21,8 @@
       "dependencies": {
         "System.IO": "4.1.0",
         "System.IO.FileSystem": "4.0.1",
-        "System.IO.FileSystem.Primitives": "4.0.1"
+        "System.IO.FileSystem.Primitives": "4.0.1",
+        "System.Text.Encoding.Extensions": "4.0.11"
       }
     }
   }
