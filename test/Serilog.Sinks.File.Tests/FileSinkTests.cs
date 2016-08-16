@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using Xunit;
 using Serilog.Formatting.Json;
 using Serilog.Sinks.File.Tests.Support;
