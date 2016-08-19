@@ -16,7 +16,9 @@
     "xmlDoc": true
   },
   "frameworks": {
-    "net4.5": {},
+    "net4.5": {
+      "buildOptions": { "define": [ "ATOMIC_APPEND" ] }
+    },
     "netstandard1.3": {
       "dependencies": {
         "System.IO": "4.1.0",

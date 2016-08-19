@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using Serilog;
+using Serilog.Debugging;
 
 namespace Sample
 {
@@ -8,6 +9,8 @@ namespace Sample
     {
         public static void Main(string[] args)
         {
+            SelfLog.Enable(Console.Out);
+
             Log.Logger = new LoggerConfiguration()
                 .WriteTo.File("log.txt")
                 .CreateLogger();
@@ -24,6 +27,10 @@ namespace Sample
             sw.Stop();
 
             Console.WriteLine($"Elapsed: {sw.ElapsedMilliseconds} ms");
+            Console.WriteLine($"Size: {new FileInfo("log.txt").Length}");
+
+            Console.WriteLine("Press any key to delete the temporary log file...");
+            Console.ReadKey(true);
 
             File.Delete("log.txt");
         }

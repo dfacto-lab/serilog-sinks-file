@@ -47,6 +47,7 @@ namespace Serilog
         /// will be written in full even if it exceeds the limit.</param>
         /// <param name="buffered">Indicates if flushing to the output file can be buffered or not. The default
         /// is false.</param>
+        /// <param name="shared">Allow the log file to be shared by multiple processes. The default is false.</param>
         /// <returns>Configuration object allowing method chaining.</returns>
         /// <remarks>The file will be written using the UTF-8 character set.</remarks>
         public static LoggerConfiguration File(
@@ -57,14 +58,15 @@ namespace Serilog
             IFormatProvider formatProvider = null,
             long? fileSizeLimitBytes = DefaultFileSizeLimitBytes,
             LoggingLevelSwitch levelSwitch = null,
-            bool buffered = false)
+            bool buffered = false,
+            bool shared = false)
         {
             if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));
             if (path == null) throw new ArgumentNullException(nameof(path));
             if (outputTemplate == null) throw new ArgumentNullException(nameof(outputTemplate));
 
             var formatter = new MessageTemplateTextFormatter(outputTemplate, formatProvider);
-            return File(sinkConfiguration, formatter, path, restrictedToMinimumLevel, fileSizeLimitBytes, levelSwitch, buffered);
+            return File(sinkConfiguration, formatter, path, restrictedToMinimumLevel, fileSizeLimitBytes, levelSwitch, buffered: buffered, shared: shared);
         }
 
         /// <summary>
@@ -73,7 +75,7 @@ namespace Serilog
         /// <param name="sinkConfiguration">Logger sink configuration.</param>
         /// <param name="formatter">A formatter, such as <see cref="JsonFormatter"/>, to convert the log events into
         /// text for the file. If control of regular text formatting is required, use the other
-        /// overload of <see cref="File(LoggerSinkConfiguration, string, LogEventLevel, string, IFormatProvider, long?, LoggingLevelSwitch, bool)"/>
+        /// overload of <see cref="File(LoggerSinkConfiguration, string, LogEventLevel, string, IFormatProvider, long?, LoggingLevelSwitch, bool, bool)"/>
         /// and specify the outputTemplate parameter instead.
         /// </param>
         /// <param name="path">Path to the file.</param>
@@ -86,6 +88,7 @@ namespace Serilog
         /// will be written in full even if it exceeds the limit.</param>
         /// <param name="buffered">Indicates if flushing to the output file can be buffered or not. The default
         /// is false.</param>
+        /// <param name="shared">Allow the log file to be shared by multiple processes. The default is false.</param>
         /// <returns>Configuration object allowing method chaining.</returns>
         /// <remarks>The file will be written using the UTF-8 character set.</remarks>
         public static LoggerConfiguration File(
@@ -95,9 +98,10 @@ namespace Serilog
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
             long? fileSizeLimitBytes = DefaultFileSizeLimitBytes,
             LoggingLevelSwitch levelSwitch = null,
-            bool buffered = false)
+            bool buffered = false,
+            bool shared = false)
         {
-            return ConfigureFile(sinkConfiguration.Sink, formatter, path, restrictedToMinimumLevel, fileSizeLimitBytes, levelSwitch, buffered);
+            return ConfigureFile(sinkConfiguration.Sink, formatter, path, restrictedToMinimumLevel, fileSizeLimitBytes, levelSwitch, buffered: buffered, shared: shared);
         }
 
         /// <summary>
@@ -136,7 +140,7 @@ namespace Serilog
         /// <param name="sinkConfiguration">Logger sink configuration.</param>
         /// <param name="formatter">A formatter, such as <see cref="JsonFormatter"/>, to convert the log events into
         /// text for the file. If control of regular text formatting is required, use the other
-        /// overload of <see cref="File(LoggerSinkConfiguration, string, LogEventLevel, string, IFormatProvider, long?, LoggingLevelSwitch, bool)"/>
+        /// overload of <see cref="File(LoggerAuditSinkConfiguration, string, LogEventLevel, string, IFormatProvider, LoggingLevelSwitch)"/>
         /// and specify the outputTemplate parameter instead.
         /// </param>
         /// <param name="path">Path to the file.</param>
@@ -164,17 +168,39 @@ namespace Serilog
             long? fileSizeLimitBytes = DefaultFileSizeLimitBytes,
             LoggingLevelSwitch levelSwitch = null,
             bool buffered = false,
-            bool propagateExceptions = false)
+            bool propagateExceptions = false,
+            bool shared = false)
         {
             if (addSink == null) throw new ArgumentNullException(nameof(addSink));
             if (formatter == null) throw new ArgumentNullException(nameof(formatter));
             if (path == null) throw new ArgumentNullException(nameof(path));
             if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0) throw new ArgumentException("Negative value provided; file size limit must be non-negative");
 
-            FileSink sink;
+            if (shared)
+            {
+#if !ATOMIC_APPEND
+                throw new NotSupportedException("File sharing is not supported on this platform.");
+#endif
+
+                if (buffered)
+                    throw new ArgumentException("Buffered writes are not available when file sharing is enabled.");
+            }
+
+            ILogEventSink sink;
             try
             {
-                sink = new FileSink(path, formatter, fileSizeLimitBytes, buffered: buffered);
+#if ATOMIC_APPEND
+                if (shared)
+                {
+                    sink = new SharedFileSink(path, formatter, fileSizeLimitBytes);
+                }
+                else
+                {
+#endif
+                    sink = new FileSink(path, formatter, fileSizeLimitBytes, buffered: buffered);
+#if ATOMIC_APPEND
+                }
+#endif
             }
             catch (Exception ex)
             {
