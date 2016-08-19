@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#if ATOMIC_APPEND
+
 using System;
 using System.IO;
-#if ATOMIC_APPEND
 using System.Security.AccessControl;
-#endif
 using System.Text;
 using Serilog.Core;
 using Serilog.Events;
@@ -27,14 +27,21 @@ namespace Serilog.Sinks.File
     /// <summary>
     /// Write log events to a disk file.
     /// </summary>
-    public sealed class FileSink : ILogEventSink, IDisposable
+    public sealed class SharedFileSink : ILogEventSink, IDisposable
     {
+        readonly MemoryStream _writeBuffer;
+        readonly string _path;
         readonly TextWriter _output;
         readonly ITextFormatter _textFormatter;
         readonly long? _fileSizeLimitBytes;
-        readonly bool _buffered;
         readonly object _syncRoot = new object();
-        readonly WriteCountingStream _countingStreamWrapper;
+        readonly FileInfo _fileInfo;
+
+        // The stream is reopened with a larger buffer if atomic writes beyond the current buffer size are needed.
+        FileStream _fileOutput;
+        int _fileStreamBufferLength = DefaultFileStreamBufferLength;
+
+        const int DefaultFileStreamBufferLength = 4096;
 
         /// <summary>Construct a <see cref="FileSink"/>.</summary>
         /// <param name="path">Path to the file.</param>
@@ -43,20 +50,18 @@ namespace Serilog.Sinks.File
         /// For unrestricted growth, pass null. The default is 1 GB. To avoid writing partial events, the last event within the limit
         /// will be written in full even if it exceeds the limit.</param>
         /// <param name="encoding">Character encoding used to write the text file. The default is UTF-8 without BOM.</param>
-        /// <param name="buffered">Indicates if flushing to the output file can be buffered or not. The default
-        /// is false.</param>
         /// <returns>Configuration object allowing method chaining.</returns>
         /// <remarks>The file will be written using the UTF-8 character set.</remarks>
         /// <exception cref="IOException"></exception>
-        public FileSink(string path, ITextFormatter textFormatter, long? fileSizeLimitBytes, Encoding encoding = null, bool buffered = false)
+        public SharedFileSink(string path, ITextFormatter textFormatter, long? fileSizeLimitBytes, Encoding encoding = null)
         {
             if (path == null) throw new ArgumentNullException(nameof(path));
             if (textFormatter == null) throw new ArgumentNullException(nameof(textFormatter));
             if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0) throw new ArgumentException("Negative value provided; file size limit must be non-negative");
 
+            _path = path;
             _textFormatter = textFormatter;
             _fileSizeLimitBytes = fileSizeLimitBytes;
-            _buffered = buffered;
 
             var directory = Path.GetDirectoryName(path);
             if (!string.IsNullOrWhiteSpace(directory) && !Directory.Exists(directory))
@@ -64,19 +69,23 @@ namespace Serilog.Sinks.File
                 Directory.CreateDirectory(directory);
             }
 
-#if ATOMIC_APPEND
-            // FileSystemRights.AppendData improves performance substantially (~30%) when available.
-            Stream file = new FileStream(path, FileMode.Append, FileSystemRights.AppendData, FileShare.Read, 4096, FileOptions.None);
-#else
-            Stream file = System.IO.File.Open(path, FileMode.Append, FileAccess.Write, FileShare.Read);
-#endif
+            // FileSystemRights.AppendData sets the Win32 FILE_APPEND_DATA flag. On Linux this is O_APPEND, but that API is not yet
+            // exposed by .NET Core.
+            _fileOutput = new FileStream(
+                path, 
+                FileMode.Append,
+                FileSystemRights.AppendData,
+                FileShare.Write,
+                _fileStreamBufferLength,
+                FileOptions.None);
 
             if (_fileSizeLimitBytes != null)
             {
-                file = _countingStreamWrapper = new WriteCountingStream(file);
+                _fileInfo = new FileInfo(path);
             }
 
-            _output = new StreamWriter(file, encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            _writeBuffer = new MemoryStream();
+            _output = new StreamWriter(_writeBuffer, encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         }
 
         /// <summary>
@@ -86,17 +95,51 @@ namespace Serilog.Sinks.File
         public void Emit(LogEvent logEvent)
         {
             if (logEvent == null) throw new ArgumentNullException(nameof(logEvent));
+
+            if (_fileSizeLimitBytes != null)
+            {
+                if (_fileInfo.Length >= _fileSizeLimitBytes.Value)
+                    return;
+            }
+
             lock (_syncRoot)
             {
-                if (_fileSizeLimitBytes != null)
+                try
                 {
-                    if (_countingStreamWrapper.CountedLength >= _fileSizeLimitBytes.Value)
-                        return;
-                }
-
-                _textFormatter.Format(logEvent, _output);
-                if (!_buffered)
+                    _textFormatter.Format(logEvent, _output);
                     _output.Flush();
+                    var bytes = _writeBuffer.GetBuffer();
+                    var length = (int)_writeBuffer.Length;
+                    if (length > _fileStreamBufferLength)
+                    {
+                        var oldOutput = _fileOutput;
+
+                        _fileOutput = new FileStream(
+                            _path,
+                            FileMode.Append,
+                            FileSystemRights.AppendData,
+                            FileShare.Write,
+                            length,
+                            FileOptions.None);
+                        _fileStreamBufferLength = length;
+
+                        oldOutput.Dispose();
+                    }
+
+                    _fileOutput.Write(bytes, 0, length);
+                    _fileOutput.Flush();
+                }
+                catch
+                {
+                    // Make sure there's no leftover cruft in there.
+                    _output.Flush();
+                    throw;
+                }
+                finally
+                {
+                    _writeBuffer.Position = 0;
+                    _writeBuffer.SetLength(0);
+                }
             }
         }
 
@@ -104,6 +147,8 @@ namespace Serilog.Sinks.File
         /// Performs application-defined tasks associated with freeing, releasing, or
         /// resetting unmanaged resources.
         /// </summary>
-        public void Dispose() => _output.Dispose();
+        public void Dispose() => _fileOutput.Dispose();
     }
 }
+
+#endif

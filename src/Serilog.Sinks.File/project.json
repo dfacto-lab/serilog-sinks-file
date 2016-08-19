@@ -1,5 +1,5 @@
 ﻿{
-  "version": "2.3.0-*",
+  "version": "3.0.0-*",
   "description": "Write Serilog events to a text file in plain or JSON format.",
   "authors": [ "Serilog Contributors" ],
   "packOptions": {
@@ -16,7 +16,9 @@
     "xmlDoc": true
   },
   "frameworks": {
-    "net4.5": {},
+    "net4.5": {
+      "buildOptions": { "define": [ "ATOMIC_APPEND" ] }
+    },
     "netstandard1.3": {
       "dependencies": {
         "System.IO": "4.1.0",
