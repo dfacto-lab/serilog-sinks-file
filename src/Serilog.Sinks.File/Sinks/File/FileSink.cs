@@ -26,18 +26,20 @@ namespace Serilog.Sinks.File
     /// </summary>
     public sealed class FileSink : ILogEventSink, IDisposable
     {
-        const int BytesPerCharacterApproximate = 1;
         readonly TextWriter _output;
         readonly ITextFormatter _textFormatter;
+        readonly long? _fileSizeLimitBytes;
         readonly bool _buffered;
         readonly object _syncRoot = new object();
+        readonly WriteCountingStream _countingStreamWrapper;
 
         /// <summary>Construct a <see cref="FileSink"/>.</summary>
         /// <param name="path">Path to the file.</param>
         /// <param name="textFormatter">Formatter used to convert log events to text.</param>
-        /// <param name="fileSizeLimitBytes">The maximum size, in bytes, to which a log file will be allowed to grow.
-        /// For unrestricted growth, pass null. The default is 1 GB.</param>
-        /// <param name="encoding">Character encoding used to write the text file. The default is UTF-8.</param>
+        /// <param name="fileSizeLimitBytes">The approximate maximum size, in bytes, to which a log file will be allowed to grow.
+        /// For unrestricted growth, pass null. The default is 1 GB. To avoid writing partial events, the last event within the limit
+        /// will be written in full even if it exceeds the limit.</param>
+        /// <param name="encoding">Character encoding used to write the text file. The default is UTF-8 without BOM.</param>
         /// <param name="buffered">Indicates if flushing to the output file can be buffered or not. The default
         /// is false.</param>
         /// <returns>Configuration object allowing method chaining.</returns>
@@ -50,6 +52,7 @@ namespace Serilog.Sinks.File
             if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0) throw new ArgumentException("Negative value provided; file size limit must be non-negative");
 
             _textFormatter = textFormatter;
+            _fileSizeLimitBytes = fileSizeLimitBytes;
             _buffered = buffered;
 
             var directory = Path.GetDirectoryName(path);
@@ -58,18 +61,13 @@ namespace Serilog.Sinks.File
                 Directory.CreateDirectory(directory);
             }
 
-            var file = System.IO.File.Open(path, FileMode.Append, FileAccess.Write, FileShare.Read);
-            var outputWriter = new StreamWriter(file, encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-            if (fileSizeLimitBytes != null)
+            Stream file = System.IO.File.Open(path, FileMode.Append, FileAccess.Write, FileShare.Read);
+            if (_fileSizeLimitBytes != null)
             {
-                var initialBytes = file.Length;
-                var remainingCharacters = Math.Max(fileSizeLimitBytes.Value - initialBytes, 0L) / BytesPerCharacterApproximate;
-                _output = new CharacterCountLimitedTextWriter(outputWriter, remainingCharacters);
+                file = _countingStreamWrapper = new WriteCountingStream(file);
             }
-            else
-            {
-                _output = outputWriter;
-            }
+
+            _output = new StreamWriter(file, encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         }
 
         /// <summary>
@@ -81,6 +79,12 @@ namespace Serilog.Sinks.File
             if (logEvent == null) throw new ArgumentNullException(nameof(logEvent));
             lock (_syncRoot)
             {
+                if (_fileSizeLimitBytes != null)
+                {
+                    if (_countingStreamWrapper.CountedLength >= _fileSizeLimitBytes.Value)
+                        return;
+                }
+
                 _textFormatter.Format(logEvent, _output);
                 if (!_buffered)
                     _output.Flush();
