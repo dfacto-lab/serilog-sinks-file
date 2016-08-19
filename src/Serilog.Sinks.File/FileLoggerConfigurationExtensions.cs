@@ -183,7 +183,7 @@ namespace Serilog
 #endif
 
                 if (buffered)
-                    throw new ArgumentException("Buffered writes are not available when file sharing is enabled.");
+                    throw new ArgumentException("Buffered writes are not available when file sharing is enabled.", nameof(buffered));
             }
 
             ILogEventSink sink;
