@@ -14,7 +14,7 @@ To avoid bringing down apps with runaway disk usage the file sink **limits file 
     .WriteTo.File("log.txt", fileSizeLimitBytes: null)
 ```
 
-> **Important:** Only one process may write to a log file at a given time. For multi-process scenarios, either use separate files or one of the non-file-based sinks.
+> **Important:** By default only one process may use a log file at a given time. See _Shared log files_ below if multi-process logging is required. 
 
 ### `<appSettings>` configuration
 
@@ -35,6 +35,14 @@ To emit JSON, rather than plain text, a formatter can be specified:
 ```
 
 To configure an alternative formatter in XML `<appSettings>`, specify the formatter's assembly-qualified type name as the setting `value`.
+
+### Shared log files
+
+Multiple processes can concurrently write to the same log file if the `shared` parameter is set to `true`:
+
+```csharp
+    .WriteTo.File("log.txt", shared: true)
+```
 
 ### Performance
 
