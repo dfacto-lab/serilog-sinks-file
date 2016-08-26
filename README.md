@@ -36,4 +36,10 @@ To emit JSON, rather than plain text, a formatter can be specified:
 
 To configure an alternative formatter in XML `<appSettings>`, specify the formatter's assembly-qualified type name as the setting `value`.
 
+### Performance
+
+By default, the file sink will flush each event written through it to disk. To improve write performance, specifying `buffered: true` will permit the underlying stream to buffer writes.
+
+The [Serilog.Sinks.Async](https://github.com/serilog/serilog-sinks-async) package can be used to wrap the file sink and perform all disk accss on a background worker thread.
+
 _Copyright &copy; 2016 Serilog Contributors - Provided under the [Apache License, Version 2.0](http://apache.org/licenses/LICENSE-2.0.html)._

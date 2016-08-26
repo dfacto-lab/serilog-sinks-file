@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using Xunit;
 using Serilog.Formatting.Json;
 using Serilog.Sinks.File.Tests.Support;
@@ -53,21 +54,49 @@ namespace Serilog.Sinks.File.Tests
         [Fact]
         public void WhenLimitIsSpecifiedFileSizeIsRestricted()
         {
-            const int maxBytes = 100;
+            const int maxBytes = 5000;
+            const int eventsToLimit = 10;
 
             using (var tmp = TempFolder.ForCaller())
             {
                 var path = tmp.AllocateFilename("txt");
-                var evt = Some.LogEvent(new string('n', maxBytes + 1));
+                var evt = Some.LogEvent(new string('n', maxBytes / eventsToLimit));
 
                 using (var sink = new FileSink(path, new JsonFormatter(), maxBytes))
                 {
-                    sink.Emit(evt);
+                    for (var i = 0; i < eventsToLimit * 2; i++)
+                    {
+                        sink.Emit(evt);
+                    }
                 }
 
                 var size = new FileInfo(path).Length;
-                Assert.True(size > 0);
-                Assert.True(size < maxBytes);
+                Assert.True(size > maxBytes);
+                Assert.True(size < maxBytes * 2);
+            }
+        }
+
+        [Fact]
+        public void WhenLimitIsNotSpecifiedFileSizeIsNotRestricted()
+        {
+            const int maxBytes = 5000;
+            const int eventsToLimit = 10;
+
+            using (var tmp = TempFolder.ForCaller())
+            {
+                var path = tmp.AllocateFilename("txt");
+                var evt = Some.LogEvent(new string('n', maxBytes / eventsToLimit));
+
+                using (var sink = new FileSink(path, new JsonFormatter(), null))
+                {
+                    for (var i = 0; i < eventsToLimit * 2; i++)
+                    {
+                        sink.Emit(evt);
+                    }
+                }
+
+                var size = new FileInfo(path).Length;
+                Assert.True(size > maxBytes * 2);
             }
         }
     }
