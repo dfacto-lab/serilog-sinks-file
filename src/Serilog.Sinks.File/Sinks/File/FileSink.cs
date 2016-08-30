@@ -14,9 +14,6 @@
 
 using System;
 using System.IO;
-#if ATOMIC_APPEND
-using System.Security.AccessControl;
-#endif
 using System.Text;
 using Serilog.Core;
 using Serilog.Events;
@@ -64,13 +61,7 @@ namespace Serilog.Sinks.File
                 Directory.CreateDirectory(directory);
             }
 
-#if ATOMIC_APPEND
-            // FileSystemRights.AppendData improves performance substantially (~30%) when available.
-            Stream file = new FileStream(path, FileMode.Append, FileSystemRights.AppendData, FileShare.Read, 4096, FileOptions.None);
-#else
             Stream file = System.IO.File.Open(path, FileMode.Append, FileAccess.Write, FileShare.Read);
-#endif
-
             if (_fileSizeLimitBytes != null)
             {
                 file = _countingStreamWrapper = new WriteCountingStream(file);
