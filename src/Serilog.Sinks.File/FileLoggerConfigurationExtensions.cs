@@ -178,12 +178,12 @@ namespace Serilog
 
             if (shared)
             {
-#if !ATOMIC_APPEND
-                throw new NotSupportedException("File sharing is not supported on this platform.");
-#endif
-
+#if ATOMIC_APPEND
                 if (buffered)
                     throw new ArgumentException("Buffered writes are not available when file sharing is enabled.", nameof(buffered));
+#else
+                throw new NotSupportedException("File sharing is not supported on this platform.");
+#endif
             }
 
             ILogEventSink sink;

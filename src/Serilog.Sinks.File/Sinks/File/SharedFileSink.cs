@@ -75,7 +75,7 @@ namespace Serilog.Sinks.File
                 path, 
                 FileMode.Append,
                 FileSystemRights.AppendData,
-                FileShare.Write,
+                FileShare.ReadWrite,
                 _fileStreamBufferLength,
                 FileOptions.None);
 
@@ -118,7 +118,7 @@ namespace Serilog.Sinks.File
                             _path,
                             FileMode.Append,
                             FileSystemRights.AppendData,
-                            FileShare.Write,
+                            FileShare.ReadWrite,
                             length,
                             FileOptions.None);
                         _fileStreamBufferLength = length;
