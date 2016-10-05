@@ -197,28 +197,12 @@ namespace Serilog
 #if ATOMIC_APPEND
                 if (shared)
                 {
-                    var sfs = new SharedFileSink(path, formatter, fileSizeLimitBytes);
-                    if (flushToDiskInterval.HasValue)
-                    {
-                        sink = new PeriodicFlushToDiskSink<SharedFileSink>(sfs, flushToDiskInterval.Value);
-                    }
-                    else
-                    {
-                        sink = sfs;
-                    }
+                    sink = new SharedFileSink(path, formatter, fileSizeLimitBytes);
                 }
                 else
                 {
 #endif
-                    var fs = new FileSink(path, formatter, fileSizeLimitBytes, buffered: buffered);
-                    if (flushToDiskInterval.HasValue)
-                    {
-                        sink = new PeriodicFlushToDiskSink<FileSink>(fs, flushToDiskInterval.Value);
-                    }
-                    else
-                    {
-                        sink = fs;
-                    }
+                    sink = new FileSink(path, formatter, fileSizeLimitBytes, buffered: buffered);
 #if ATOMIC_APPEND
                 }
 #endif
@@ -233,6 +217,10 @@ namespace Serilog
                 return addSink(new NullSink(), LevelAlias.Maximum, null);
             }
 
+            if (flushToDiskInterval.HasValue)
+            {
+                sink = new PeriodicFlushToDiskSink(sink, flushToDiskInterval.Value);
+            }
 
             return addSink(sink, restrictedToMinimumLevel, levelSwitch);
         }
