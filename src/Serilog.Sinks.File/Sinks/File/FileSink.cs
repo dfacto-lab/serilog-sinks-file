@@ -24,9 +24,10 @@ namespace Serilog.Sinks.File
     /// <summary>
     /// Write log events to a disk file.
     /// </summary>
-    public sealed class FileSink : ILogEventSink, IDisposable
+    public sealed class FileSink : ILogEventSink, IFlushableFileSink, IDisposable
     {
         readonly TextWriter _output;
+        readonly FileStream _underlyingStream;
         readonly ITextFormatter _textFormatter;
         readonly long? _fileSizeLimitBytes;
         readonly bool _buffered;
@@ -61,13 +62,13 @@ namespace Serilog.Sinks.File
                 Directory.CreateDirectory(directory);
             }
 
-            Stream file = System.IO.File.Open(path, FileMode.Append, FileAccess.Write, FileShare.Read);
+            Stream outputStream = _underlyingStream = System.IO.File.Open(path, FileMode.Append, FileAccess.Write, FileShare.Read);
             if (_fileSizeLimitBytes != null)
             {
-                file = _countingStreamWrapper = new WriteCountingStream(file);
+                outputStream = _countingStreamWrapper = new WriteCountingStream(_underlyingStream);
             }
 
-            _output = new StreamWriter(file, encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            _output = new StreamWriter(outputStream, encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         }
 
         /// <summary>
@@ -91,10 +92,17 @@ namespace Serilog.Sinks.File
             }
         }
 
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or
-        /// resetting unmanaged resources.
-        /// </summary>
+        /// <inheritdoc />
         public void Dispose() => _output.Dispose();
+
+        /// <inheritdoc />
+        public void FlushToDisk()
+        {
+            lock (_syncRoot)
+            {
+                _output.Flush();
+                _underlyingStream.Flush(true);
+            }
+        }
     }
 }
