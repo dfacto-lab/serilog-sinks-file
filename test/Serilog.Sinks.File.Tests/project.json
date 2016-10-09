@@ -6,7 +6,6 @@
     "dotnet-test-xunit": "1.0.0-rc2-build10025"
   },
   "frameworks": {
-    "net4.5.2": {},
     "netcoreapp1.0": {
       "dependencies": {
         "Microsoft.NETCore.App": {
@@ -18,6 +17,11 @@
         "dnxcore50",
         "portable-net45+win8"
       ]
+    },
+    "net4.5.2": {
+      "buildOptions": {
+        "define": ["ATOMIC_APPEND"]
+      }
     }
   }
 }

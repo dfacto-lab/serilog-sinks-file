@@ -27,7 +27,7 @@ namespace Serilog.Sinks.File
     /// <summary>
     /// Write log events to a disk file.
     /// </summary>
-    public sealed class SharedFileSink : ILogEventSink, IDisposable
+    public sealed class SharedFileSink : ILogEventSink, IFlushableFileSink, IDisposable
     {
         readonly MemoryStream _writeBuffer;
         readonly string _path;
@@ -35,7 +35,6 @@ namespace Serilog.Sinks.File
         readonly ITextFormatter _textFormatter;
         readonly long? _fileSizeLimitBytes;
         readonly object _syncRoot = new object();
-        readonly FileInfo _fileInfo;
 
         // The stream is reopened with a larger buffer if atomic writes beyond the current buffer size are needed.
         FileStream _fileOutput;
@@ -53,11 +52,13 @@ namespace Serilog.Sinks.File
         /// <returns>Configuration object allowing method chaining.</returns>
         /// <remarks>The file will be written using the UTF-8 character set.</remarks>
         /// <exception cref="IOException"></exception>
-        public SharedFileSink(string path, ITextFormatter textFormatter, long? fileSizeLimitBytes, Encoding encoding = null)
+        public SharedFileSink(string path, ITextFormatter textFormatter, long? fileSizeLimitBytes,
+            Encoding encoding = null)
         {
             if (path == null) throw new ArgumentNullException(nameof(path));
             if (textFormatter == null) throw new ArgumentNullException(nameof(textFormatter));
-            if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0) throw new ArgumentException("Negative value provided; file size limit must be non-negative");
+            if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0)
+                throw new ArgumentException("Negative value provided; file size limit must be non-negative");
 
             _path = path;
             _textFormatter = textFormatter;
@@ -72,20 +73,16 @@ namespace Serilog.Sinks.File
             // FileSystemRights.AppendData sets the Win32 FILE_APPEND_DATA flag. On Linux this is O_APPEND, but that API is not yet
             // exposed by .NET Core.
             _fileOutput = new FileStream(
-                path, 
+                path,
                 FileMode.Append,
                 FileSystemRights.AppendData,
                 FileShare.ReadWrite,
                 _fileStreamBufferLength,
                 FileOptions.None);
 
-            if (_fileSizeLimitBytes != null)
-            {
-                _fileInfo = new FileInfo(path);
-            }
-
             _writeBuffer = new MemoryStream();
-            _output = new StreamWriter(_writeBuffer, encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            _output = new StreamWriter(_writeBuffer,
+                encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         }
 
         /// <summary>
@@ -96,12 +93,6 @@ namespace Serilog.Sinks.File
         {
             if (logEvent == null) throw new ArgumentNullException(nameof(logEvent));
 
-            if (_fileSizeLimitBytes != null)
-            {
-                if (_fileInfo.Length >= _fileSizeLimitBytes.Value)
-                    return;
-            }
-
             lock (_syncRoot)
             {
                 try
@@ -109,7 +100,7 @@ namespace Serilog.Sinks.File
                     _textFormatter.Format(logEvent, _output);
                     _output.Flush();
                     var bytes = _writeBuffer.GetBuffer();
-                    var length = (int)_writeBuffer.Length;
+                    var length = (int) _writeBuffer.Length;
                     if (length > _fileStreamBufferLength)
                     {
                         var oldOutput = _fileOutput;
@@ -124,6 +115,16 @@ namespace Serilog.Sinks.File
                         _fileStreamBufferLength = length;
 
                         oldOutput.Dispose();
+                    }
+
+                    if (_fileSizeLimitBytes != null)
+                    {
+                        try
+                        {
+                            if (_fileOutput.Length >= _fileSizeLimitBytes.Value)
+                                return;
+                        }
+                        catch (FileNotFoundException) { } // Cheaper and more reliable than checking existence
                     }
 
                     _fileOutput.Write(bytes, 0, length);
@@ -143,11 +144,25 @@ namespace Serilog.Sinks.File
             }
         }
 
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or
-        /// resetting unmanaged resources.
-        /// </summary>
-        public void Dispose() => _fileOutput.Dispose();
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            lock (_syncRoot)
+            {
+                _fileOutput.Dispose();
+            }
+        }
+
+        /// <inheritdoc />
+        public void FlushToDisk()
+        {
+            lock (_syncRoot)
+            {
+                _output.Flush();
+                _fileOutput.Flush(true);
+            }
+        }
     }
 }
 

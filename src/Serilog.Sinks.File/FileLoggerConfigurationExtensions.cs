@@ -48,6 +48,7 @@ namespace Serilog
         /// <param name="buffered">Indicates if flushing to the output file can be buffered or not. The default
         /// is false.</param>
         /// <param name="shared">Allow the log file to be shared by multiple processes. The default is false.</param>
+        /// <param name="flushToDiskInterval">If provided, a full disk flush will be performed periodically at the specified interval.</param>
         /// <returns>Configuration object allowing method chaining.</returns>
         /// <remarks>The file will be written using the UTF-8 character set.</remarks>
         public static LoggerConfiguration File(
@@ -59,14 +60,15 @@ namespace Serilog
             long? fileSizeLimitBytes = DefaultFileSizeLimitBytes,
             LoggingLevelSwitch levelSwitch = null,
             bool buffered = false,
-            bool shared = false)
+            bool shared = false,
+            TimeSpan? flushToDiskInterval = null)
         {
             if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));
             if (path == null) throw new ArgumentNullException(nameof(path));
             if (outputTemplate == null) throw new ArgumentNullException(nameof(outputTemplate));
 
             var formatter = new MessageTemplateTextFormatter(outputTemplate, formatProvider);
-            return File(sinkConfiguration, formatter, path, restrictedToMinimumLevel, fileSizeLimitBytes, levelSwitch, buffered: buffered, shared: shared);
+            return File(sinkConfiguration, formatter, path, restrictedToMinimumLevel, fileSizeLimitBytes, levelSwitch, buffered: buffered, shared: shared, flushToDiskInterval: flushToDiskInterval);
         }
 
         /// <summary>
@@ -75,7 +77,7 @@ namespace Serilog
         /// <param name="sinkConfiguration">Logger sink configuration.</param>
         /// <param name="formatter">A formatter, such as <see cref="JsonFormatter"/>, to convert the log events into
         /// text for the file. If control of regular text formatting is required, use the other
-        /// overload of <see cref="File(LoggerSinkConfiguration, string, LogEventLevel, string, IFormatProvider, long?, LoggingLevelSwitch, bool, bool)"/>
+        /// overload of <see cref="File(LoggerSinkConfiguration, string, LogEventLevel, string, IFormatProvider, long?, LoggingLevelSwitch, bool, bool, TimeSpan?)"/>
         /// and specify the outputTemplate parameter instead.
         /// </param>
         /// <param name="path">Path to the file.</param>
@@ -89,6 +91,7 @@ namespace Serilog
         /// <param name="buffered">Indicates if flushing to the output file can be buffered or not. The default
         /// is false.</param>
         /// <param name="shared">Allow the log file to be shared by multiple processes. The default is false.</param>
+        /// <param name="flushToDiskInterval">If provided, a full disk flush will be performed periodically at the specified interval.</param>
         /// <returns>Configuration object allowing method chaining.</returns>
         /// <remarks>The file will be written using the UTF-8 character set.</remarks>
         public static LoggerConfiguration File(
@@ -99,9 +102,10 @@ namespace Serilog
             long? fileSizeLimitBytes = DefaultFileSizeLimitBytes,
             LoggingLevelSwitch levelSwitch = null,
             bool buffered = false,
-            bool shared = false)
+            bool shared = false,
+            TimeSpan? flushToDiskInterval = null)
         {
-            return ConfigureFile(sinkConfiguration.Sink, formatter, path, restrictedToMinimumLevel, fileSizeLimitBytes, levelSwitch, buffered: buffered, shared: shared);
+            return ConfigureFile(sinkConfiguration.Sink, formatter, path, restrictedToMinimumLevel, fileSizeLimitBytes, levelSwitch, buffered: buffered, shared: shared, flushToDiskInterval: flushToDiskInterval);
         }
 
         /// <summary>
@@ -169,7 +173,8 @@ namespace Serilog
             LoggingLevelSwitch levelSwitch = null,
             bool buffered = false,
             bool propagateExceptions = false,
-            bool shared = false)
+            bool shared = false,
+            TimeSpan? flushToDiskInterval = null)
         {
             if (addSink == null) throw new ArgumentNullException(nameof(addSink));
             if (formatter == null) throw new ArgumentNullException(nameof(formatter));
@@ -210,6 +215,11 @@ namespace Serilog
                     throw;
 
                 return addSink(new NullSink(), LevelAlias.Maximum, null);
+            }
+
+            if (flushToDiskInterval.HasValue)
+            {
+                sink = new PeriodicFlushToDiskSink(sink, flushToDiskInterval.Value);
             }
 
             return addSink(sink, restrictedToMinimumLevel, levelSwitch);

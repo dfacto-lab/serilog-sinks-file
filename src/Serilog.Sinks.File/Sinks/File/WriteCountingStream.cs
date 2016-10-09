@@ -51,6 +51,7 @@ namespace Serilog.Sinks.File
         public override bool CanWrite => true;
         public override long Length => _stream.Length;
 
+
         public override long Position
         {
             get { return _stream.Position; }
