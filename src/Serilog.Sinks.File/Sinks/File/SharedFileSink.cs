@@ -146,7 +146,13 @@ namespace Serilog.Sinks.File
 
 
         /// <inheritdoc />
-        public void Dispose() => _fileOutput.Dispose();
+        public void Dispose()
+        {
+            lock (_syncRoot)
+            {
+                _fileOutput.Dispose();
+            }
+        }
 
         /// <inheritdoc />
         public void FlushToDisk()
