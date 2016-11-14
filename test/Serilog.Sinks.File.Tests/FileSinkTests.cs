@@ -143,12 +143,12 @@ namespace Serilog.Sinks.File.Tests
             WriteTwoEventsAndCheckOutputFileLength(maxBytes, encoding);
         }
 
-        private static void WriteTwoEventsAndCheckOutputFileLength(long? maxBytes, Encoding encoding)
+        static void WriteTwoEventsAndCheckOutputFileLength(long? maxBytes, Encoding encoding)
         {
             using (var tmp = TempFolder.ForCaller())
             {
                 var path = tmp.AllocateFilename("txt");
-                var evt = Some.LogEvent("Irelevant as it will be replaced by the formatter ");
+                var evt = Some.LogEvent("Irrelevant as it will be replaced by the formatter");
                 var actualEventOutput = "x";
                 var formatter = new FixedOutputFormatter(actualEventOutput);
                 var eventOuputLength = encoding.GetByteCount(actualEventOutput);

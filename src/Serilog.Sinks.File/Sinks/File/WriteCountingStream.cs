@@ -60,7 +60,7 @@ namespace Serilog.Sinks.File
 
         public override long Seek(long offset, SeekOrigin origin)
         {
-            return _stream.Seek(offset, origin);
+            throw new InvalidOperationException($"Seek operations are not available through `{nameof(WriteCountingStream)}`.");
         }
 
         public override void SetLength(long value)
