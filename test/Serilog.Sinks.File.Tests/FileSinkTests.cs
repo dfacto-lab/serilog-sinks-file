@@ -4,6 +4,8 @@ using Xunit;
 using Serilog.Formatting.Json;
 using Serilog.Sinks.File.Tests.Support;
 using Serilog.Tests.Support;
+using System.Text;
+using Serilog.Tests;
 
 namespace Serilog.Sinks.File.Tests
 {
@@ -97,6 +99,75 @@ namespace Serilog.Sinks.File.Tests
 
                 var size = new FileInfo(path).Length;
                 Assert.True(size > maxBytes * 2);
+            }
+        }
+
+
+        [Fact]
+        public void WhenLimitIsSpecifiedAndEncodingHasPreambleDataIsCorrectlyAppendedToFileSink()
+        {
+            long? maxBytes = 5000;
+            var encoding = Encoding.UTF8;
+
+            Assert.True(encoding.GetPreamble().Length > 0);
+            WriteTwoEventsAndCheckOutputFileLength(maxBytes, encoding);
+        }
+
+        [Fact]
+        public void WhenLimitIsNotSpecifiedAndEncodingHasPreambleDataIsCorrectlyAppendedToFileSink()
+        {
+            long? maxBytes = null;
+            var encoding = Encoding.UTF8;
+
+            Assert.True(encoding.GetPreamble().Length > 0);
+            WriteTwoEventsAndCheckOutputFileLength(maxBytes, encoding);
+        }
+
+        [Fact]
+        public void WhenLimitIsSpecifiedAndEncodingHasNoPreambleDataIsCorrectlyAppendedToFileSink()
+        {
+            long? maxBytes = 5000;
+            var encoding = new UTF8Encoding(false);
+
+            Assert.Equal(0, encoding.GetPreamble().Length);
+            WriteTwoEventsAndCheckOutputFileLength(maxBytes, encoding);
+        }
+
+        [Fact]
+        public void WhenLimitIsNotSpecifiedAndEncodingHasNoPreambleDataIsCorrectlyAppendedToFileSink()
+        {
+            long? maxBytes = null;
+            var encoding = new UTF8Encoding(false);
+
+            Assert.Equal(0, encoding.GetPreamble().Length);
+            WriteTwoEventsAndCheckOutputFileLength(maxBytes, encoding);
+        }
+
+        static void WriteTwoEventsAndCheckOutputFileLength(long? maxBytes, Encoding encoding)
+        {
+            using (var tmp = TempFolder.ForCaller())
+            {
+                var path = tmp.AllocateFilename("txt");
+                var evt = Some.LogEvent("Irrelevant as it will be replaced by the formatter");
+                var actualEventOutput = "x";
+                var formatter = new FixedOutputFormatter(actualEventOutput);
+                var eventOuputLength = encoding.GetByteCount(actualEventOutput);
+
+                using (var sink = new FileSink(path, formatter, maxBytes, encoding: encoding))
+                {
+                    sink.Emit(evt);
+                }
+                var size = new FileInfo(path).Length;
+                Assert.Equal(encoding.GetPreamble().Length + eventOuputLength, size);
+
+                //write a second event to the same file
+                using (var sink = new FileSink(path, formatter, maxBytes, encoding: encoding))
+                {
+                    sink.Emit(evt);
+                }
+
+                size = new FileInfo(path).Length;
+                Assert.Equal(encoding.GetPreamble().Length + eventOuputLength * 2, size);
             }
         }
     }
