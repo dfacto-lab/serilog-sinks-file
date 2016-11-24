@@ -21,6 +21,7 @@ using Serilog.Core;
 using Serilog.Events;
 using Serilog.Formatting;
 using System.Threading;
+using Serilog.Debugging;
 
 namespace Serilog.Sinks.File
 {
@@ -36,6 +37,7 @@ namespace Serilog.Sinks.File
         readonly object _syncRoot = new object();
 
         const string MutexNameSuffix = ".serilog";
+        const int MutexWaitTimeout = 10000;
         readonly Mutex _mutex;
 
         /// <summary>Construct a <see cref="FileSink"/>.</summary>
@@ -80,7 +82,12 @@ namespace Serilog.Sinks.File
 
             lock (_syncRoot)
             {
-                _mutex.WaitOne();
+                if (!_mutex.WaitOne(MutexWaitTimeout))
+                {
+                    SelfLog.WriteLine("Shared file mutex could not be acquired in {0} ms for event emitting", MutexWaitTimeout);
+                    return;
+                }
+
                 try
                 {
                     _underlyingStream.Seek(0, SeekOrigin.End);
@@ -107,6 +114,7 @@ namespace Serilog.Sinks.File
             lock (_syncRoot)
             {
                 _output.Dispose();
+                _mutex.Dispose();
             }
         }
 
@@ -115,7 +123,12 @@ namespace Serilog.Sinks.File
         {
             lock (_syncRoot)
             {
-                _mutex.WaitOne();
+                if (!_mutex.WaitOne(MutexWaitTimeout))
+                {
+                    SelfLog.WriteLine("Shared file mutex could not be acquired in {0} ms for disk flush operation", MutexWaitTimeout);
+                    return;
+                }
+
                 try
                 {
                     _underlyingStream.Flush(true);
