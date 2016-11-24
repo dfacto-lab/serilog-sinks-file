@@ -183,7 +183,7 @@ namespace Serilog
 
             if (shared)
             {
-#if ATOMIC_APPEND
+#if SHARING
                 if (buffered)
                     throw new ArgumentException("Buffered writes are not available when file sharing is enabled.", nameof(buffered));
 #else
@@ -194,7 +194,7 @@ namespace Serilog
             ILogEventSink sink;
             try
             {
-#if ATOMIC_APPEND
+#if SHARING
                 if (shared)
                 {
                     sink = new SharedFileSink(path, formatter, fileSizeLimitBytes);
@@ -203,7 +203,7 @@ namespace Serilog
                 {
 #endif
                     sink = new FileSink(path, formatter, fileSizeLimitBytes, buffered: buffered);
-#if ATOMIC_APPEND
+#if SHARING
                 }
 #endif
             }

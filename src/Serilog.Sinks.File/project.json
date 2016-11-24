@@ -17,7 +17,18 @@
   },
   "frameworks": {
     "net4.5": {
-      "buildOptions": { "define": [ "ATOMIC_APPEND" ] }
+      "buildOptions": { "define": [ "SHARING", "ATOMIC_APPEND" ] }
+    },
+    "netcoreapp1.0": {
+      "buildOptions": { "define": [ "SHARING", "OS_MUTEX" ] },
+      "dependencies": {
+        "System.IO": "4.1.0",
+        "System.IO.FileSystem": "4.0.1",
+        "System.IO.FileSystem.Primitives": "4.0.1",
+        "System.Text.Encoding.Extensions": "4.0.11",
+        "System.Threading.Timer": "4.0.1",
+        "System.Threading": "4.0.11"
+      }
     },
     "netstandard1.3": {
       "dependencies": {
@@ -25,7 +36,7 @@
         "System.IO.FileSystem": "4.0.1",
         "System.IO.FileSystem.Primitives": "4.0.1",
         "System.Text.Encoding.Extensions": "4.0.11",
-        "System.Threading.Timer": "4.0.1" 
+        "System.Threading.Timer": "4.0.1"
       }
     }
   }

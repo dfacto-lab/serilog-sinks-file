@@ -11,11 +11,11 @@ namespace Sample
         {
             SelfLog.Enable(Console.Out);
 
-            Log.Logger = new LoggerConfiguration()
-                .WriteTo.File("log.txt")
-                .CreateLogger();
-
             var sw = System.Diagnostics.Stopwatch.StartNew();
+
+            Log.Logger = new LoggerConfiguration()
+                .WriteTo.File("log.txt", shared: true)
+                .CreateLogger();
 
             for (var i = 0; i < 1000000; ++i)
             {

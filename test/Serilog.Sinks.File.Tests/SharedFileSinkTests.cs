@@ -1,6 +1,4 @@
-﻿#if ATOMIC_APPEND
-
-using System.IO;
+﻿using System.IO;
 using Xunit;
 using Serilog.Formatting.Json;
 using Serilog.Sinks.File.Tests.Support;
@@ -102,5 +100,3 @@ namespace Serilog.Sinks.File.Tests
         }
     }
 }
-
-#endif
