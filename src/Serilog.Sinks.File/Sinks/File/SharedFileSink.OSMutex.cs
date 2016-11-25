@@ -66,8 +66,8 @@ namespace Serilog.Sinks.File
                 Directory.CreateDirectory(directory);
             }
 
-            // Backslash is special on Windows
-            _mutex = new Mutex(false, path.Replace('\\', ':') + MutexNameSuffix);
+            var mutexName = Path.GetFullPath(path).Replace(Path.DirectorySeparatorChar, ':') + MutexNameSuffix;
+            _mutex = new Mutex(false, mutexName);
             _underlyingStream = System.IO.File.Open(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
             _output = new StreamWriter(_underlyingStream, encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         }
@@ -82,11 +82,8 @@ namespace Serilog.Sinks.File
 
             lock (_syncRoot)
             {
-                if (!_mutex.WaitOne(MutexWaitTimeout))
-                {
-                    SelfLog.WriteLine("Shared file mutex could not be acquired in {0} ms for event emitting", MutexWaitTimeout);
+                if (!TryAcquireMutex())
                     return;
-                }
 
                 try
                 {
@@ -103,7 +100,7 @@ namespace Serilog.Sinks.File
                 }
                 finally
                 {
-                    _mutex.ReleaseMutex();
+                    ReleaseMutex();
                 }
             }
         }
@@ -123,11 +120,8 @@ namespace Serilog.Sinks.File
         {
             lock (_syncRoot)
             {
-                if (!_mutex.WaitOne(MutexWaitTimeout))
-                {
-                    SelfLog.WriteLine("Shared file mutex could not be acquired in {0} ms for disk flush operation", MutexWaitTimeout);
+                if (!TryAcquireMutex())
                     return;
-                }
 
                 try
                 {
@@ -135,9 +129,32 @@ namespace Serilog.Sinks.File
                 }
                 finally
                 {
-                    _mutex.ReleaseMutex();
+                    ReleaseMutex();
                 }
             }
+        }
+
+        bool TryAcquireMutex()
+        {
+            try
+            {
+                if (!_mutex.WaitOne(MutexWaitTimeout))
+                {
+                    SelfLog.WriteLine("Shared file mutex could not be acquired within {0} ms", MutexWaitTimeout);
+                    return false;
+                }
+            }
+            catch (AbandonedMutexException)
+            {
+                SelfLog.WriteLine("Inherited shared file mutex after abandonment by another process");
+            }
+
+            return true;
+        }
+
+        void ReleaseMutex()
+        {
+            _mutex.ReleaseMutex();
         }
     }
 }
