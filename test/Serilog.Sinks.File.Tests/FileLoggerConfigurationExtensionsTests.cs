@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Threading;
-using Serilog;
 using Serilog.Sinks.File.Tests.Support;
 using Serilog.Tests.Support;
 using Xunit;
+using System.IO;
 
 namespace Serilog.Tests
 {
     public class FileLoggerConfigurationExtensionsTests
     {
-        const string InvalidPath = "/\\";
+        static readonly string InvalidPath = new string(Path.GetInvalidPathChars());
 
         [Fact]
         public void WhenWritingCreationExceptionsAreSuppressed()
@@ -66,7 +66,6 @@ namespace Serilog.Tests
             }
         }
 
-#if ATOMIC_APPEND
         [Fact]
         public void WhenFlushingToDiskReportedSharedFileSinkCanBeCreatedAndDisposed()
         {
@@ -79,6 +78,5 @@ namespace Serilog.Tests
                 Thread.Sleep(TimeSpan.FromSeconds(1));
             }
         }
-#endif
     }
 }

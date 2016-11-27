@@ -37,10 +37,14 @@ namespace Serilog.Sinks.File.Tests.Support
             }
         }
 
-        public static TempFolder ForCaller([CallerMemberName] string caller = null)
+        public static TempFolder ForCaller([CallerMemberName] string caller = null, [CallerFilePath] string sourceFileName = "")
         {
             if (caller == null) throw new ArgumentNullException(nameof(caller));
-            return new TempFolder(caller);
+            if (sourceFileName == null) throw new ArgumentNullException(nameof(sourceFileName));
+            
+            var folderName = System.IO.Path.GetFileNameWithoutExtension(sourceFileName) + "_" + caller;
+
+            return new TempFolder(folderName);
         }
 
         public string AllocateFilename(string ext = null)
