@@ -19,9 +19,6 @@
       ]
     },
     "net4.5.2": {
-      "buildOptions": {
-        "define": ["ATOMIC_APPEND"]
-      }
     }
   }
 }

@@ -20,12 +20,14 @@
       "buildOptions": { "define": [ "ATOMIC_APPEND" ] }
     },
     "netstandard1.3": {
+      "buildOptions": { "define": [ "OS_MUTEX" ] },
       "dependencies": {
         "System.IO": "4.1.0",
         "System.IO.FileSystem": "4.0.1",
         "System.IO.FileSystem.Primitives": "4.0.1",
         "System.Text.Encoding.Extensions": "4.0.11",
-        "System.Threading.Timer": "4.0.1" 
+        "System.Threading.Timer": "4.0.1",
+        "System.Threading": "4.0.11"
       }
     }
   }
