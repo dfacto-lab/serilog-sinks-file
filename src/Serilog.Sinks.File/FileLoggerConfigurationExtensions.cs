@@ -180,32 +180,20 @@ namespace Serilog
             if (formatter == null) throw new ArgumentNullException(nameof(formatter));
             if (path == null) throw new ArgumentNullException(nameof(path));
             if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0) throw new ArgumentException("Negative value provided; file size limit must be non-negative");
-
-            if (shared)
-            {
-#if ATOMIC_APPEND
-                if (buffered)
-                    throw new ArgumentException("Buffered writes are not available when file sharing is enabled.", nameof(buffered));
-#else
-                throw new NotSupportedException("File sharing is not supported on this platform.");
-#endif
-            }
+            if (shared && buffered)
+                throw new ArgumentException("Buffered writes are not available when file sharing is enabled.", nameof(buffered));
 
             ILogEventSink sink;
             try
             {
-#if ATOMIC_APPEND
                 if (shared)
                 {
                     sink = new SharedFileSink(path, formatter, fileSizeLimitBytes);
                 }
                 else
                 {
-#endif
                     sink = new FileSink(path, formatter, fileSizeLimitBytes, buffered: buffered);
-#if ATOMIC_APPEND
                 }
-#endif
             }
             catch (Exception ex)
             {
