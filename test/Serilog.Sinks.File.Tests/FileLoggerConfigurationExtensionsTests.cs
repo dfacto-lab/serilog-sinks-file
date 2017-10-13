@@ -78,5 +78,13 @@ namespace Serilog.Tests
                 Thread.Sleep(TimeSpan.FromSeconds(1));
             }
         }
+
+        [Fact]
+        public void BufferingIsNotAvailableWhenSharingEnabled()
+        {
+            Assert.Throws<ArgumentException>(() =>
+                new LoggerConfiguration()
+                    .WriteTo.File("logs", buffered: true, shared: true));
+        }
     }
 }

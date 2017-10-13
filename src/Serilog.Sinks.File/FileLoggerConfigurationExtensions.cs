@@ -14,6 +14,7 @@
 
 using System;
 using System.ComponentModel;
+using System.Text;
 using Serilog.Configuration;
 using Serilog.Core;
 using Serilog.Debugging;
@@ -30,8 +31,9 @@ namespace Serilog
     /// <summary>Extends <see cref="LoggerConfiguration"/> with methods to add file sinks.</summary>
     public static class FileLoggerConfigurationExtensions
     {
+        const int DefaultRetainedFileCountLimit = 31; // A long month of logs
         const long DefaultFileSizeLimitBytes = 1L * 1024 * 1024 * 1024;
-        const string DefaultOutputTemplate = "[{Timestamp:o} {Level:u3}] {Message:lj} {Properties}{NewLine}{Exception}";
+        const string DefaultOutputTemplate = "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}";
 
         /// <summary>
         /// Write log events to the specified file.
@@ -44,7 +46,7 @@ namespace Serilog
         /// to be changed at runtime.</param>
         /// <param name="formatProvider">Supplies culture-specific formatting information, or null.</param>
         /// <param name="outputTemplate">A message template describing the format used to write to the sink.
-        /// the default is "[{Timestamp:o} {Level:u3}] {Message:lj} {Properties}{NewLine}{Exception}".</param>
+        /// the default is "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}".</param>
         /// <param name="fileSizeLimitBytes">The approximate maximum size, in bytes, to which a log file will be allowed to grow.
         /// For unrestricted growth, pass null. The default is 1 GB. To avoid writing partial events, the last event within the limit
         /// will be written in full even if it exceeds the limit.</param>
@@ -124,7 +126,7 @@ namespace Serilog
         /// to be changed at runtime.</param>
         /// <param name="formatProvider">Supplies culture-specific formatting information, or null.</param>
         /// <param name="outputTemplate">A message template describing the format used to write to the sink.
-        /// the default is "[{Timestamp:o} {Level:u3}] {Message:lj} {Properties}{NewLine}{Exception}".</param>
+        /// the default is "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}".</param>
         /// <param name="fileSizeLimitBytes">The approximate maximum size, in bytes, to which a log file will be allowed to grow.
         /// For unrestricted growth, pass null. The default is 1 GB. To avoid writing partial events, the last event within the limit
         /// will be written in full even if it exceeds the limit.</param>
@@ -135,6 +137,9 @@ namespace Serilog
         /// <param name="rollingInterval">The interval at which logging will roll over to a new file.</param>
         /// <param name="rollOnFileSizeLimit">If <code>true</code>, a new file will be created when the file size limit is reached. Filenames 
         /// will have a number appended in the format <code>_NNNNN</code>, with the first filename given no number.</param>
+        /// <param name="retainedFileCountLimit">The maximum number of log files that will be retained,
+        /// including the current log file. For unlimited retention, pass null. The default is 31.</param>
+        /// <param name="encoding">Character encoding used to write the text file. The default is UTF-8 without BOM.</param>
         /// <returns>Configuration object allowing method chaining.</returns>
         /// <remarks>The file will be written using the UTF-8 character set.</remarks>
         public static LoggerConfiguration File(
@@ -149,7 +154,9 @@ namespace Serilog
             bool shared = false,
             TimeSpan? flushToDiskInterval = null,
             RollingInterval rollingInterval = RollingInterval.Infinite,
-            bool rollOnFileSizeLimit = false)
+            bool rollOnFileSizeLimit = false,
+            int? retainedFileCountLimit = DefaultRetainedFileCountLimit,
+            Encoding encoding = null)
         {
             if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));
             if (path == null) throw new ArgumentNullException(nameof(path));
@@ -165,7 +172,7 @@ namespace Serilog
         /// <param name="sinkConfiguration">Logger sink configuration.</param>
         /// <param name="formatter">A formatter, such as <see cref="JsonFormatter"/>, to convert the log events into
         /// text for the file. If control of regular text formatting is required, use the other
-        /// overload of <see cref="File(LoggerSinkConfiguration, string, LogEventLevel, string, IFormatProvider, long?, LoggingLevelSwitch, bool, bool, TimeSpan?, RollingInterval, bool)"/>
+        /// overload of <see cref="File(LoggerSinkConfiguration, string, LogEventLevel, string, IFormatProvider, long?, LoggingLevelSwitch, bool, bool, TimeSpan?, RollingInterval, bool, int?, Encoding)"/>
         /// and specify the outputTemplate parameter instead.
         /// </param>
         /// <param name="path">Path to the file.</param>
@@ -183,6 +190,9 @@ namespace Serilog
         /// <param name="rollingInterval">The interval at which logging will roll over to a new file.</param>
         /// <param name="rollOnFileSizeLimit">If <code>true</code>, a new file will be created when the file size limit is reached. Filenames 
         /// will have a number appended in the format <code>_NNNNN</code>, with the first filename given no number.</param>
+        /// <param name="retainedFileCountLimit">The maximum number of log files that will be retained,
+        /// including the current log file. For unlimited retention, pass null. The default is 31.</param>
+        /// <param name="encoding">Character encoding used to write the text file. The default is UTF-8 without BOM.</param>
         /// <returns>Configuration object allowing method chaining.</returns>
         /// <remarks>The file will be written using the UTF-8 character set.</remarks>
         public static LoggerConfiguration File(
@@ -196,9 +206,13 @@ namespace Serilog
             bool shared = false,
             TimeSpan? flushToDiskInterval = null,
             RollingInterval rollingInterval = RollingInterval.Infinite,
-            bool rollOnFileSizeLimit = false)
+            bool rollOnFileSizeLimit = false,
+            int? retainedFileCountLimit = DefaultRetainedFileCountLimit,
+            Encoding encoding = null)
         {
-            return ConfigureFile(sinkConfiguration.Sink, formatter, path, restrictedToMinimumLevel, fileSizeLimitBytes, levelSwitch, buffered: buffered, shared: shared, flushToDiskInterval: flushToDiskInterval, rollingInterval: rollingInterval, rollOnFileSizeLimit: rollOnFileSizeLimit);
+            return ConfigureFile(sinkConfiguration.Sink, formatter, path, restrictedToMinimumLevel, fileSizeLimitBytes, levelSwitch,
+                buffered: buffered, shared: shared, flushToDiskInterval: flushToDiskInterval, rollingInterval: rollingInterval,
+                rollOnFileSizeLimit: rollOnFileSizeLimit, retainedFileCountLimit: retainedFileCountLimit, encoding: encoding);
         }
 
         /// <summary>
@@ -212,7 +226,7 @@ namespace Serilog
         /// to be changed at runtime.</param>
         /// <param name="formatProvider">Supplies culture-specific formatting information, or null.</param>
         /// <param name="outputTemplate">A message template describing the format used to write to the sink.
-        /// the default is "[{Timestamp:o} {Level:u3}] {Message:lj} {Properties}{NewLine}{Exception}".</param>
+        /// the default is "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}".</param>
         /// <returns>Configuration object allowing method chaining.</returns>
         /// <remarks>The file will be written using the UTF-8 character set.</remarks>
         public static LoggerConfiguration File(
@@ -268,36 +282,48 @@ namespace Serilog
             bool propagateExceptions = false,
             bool shared = false,
             TimeSpan? flushToDiskInterval = null,
+            Encoding encoding = null,
             RollingInterval rollingInterval = RollingInterval.Infinite,
-            bool rollOnFileSizeLimit = false)
+            bool rollOnFileSizeLimit = false,
+            int? retainedFileCountLimit = DefaultRetainedFileCountLimit)
         {
             if (addSink == null) throw new ArgumentNullException(nameof(addSink));
             if (formatter == null) throw new ArgumentNullException(nameof(formatter));
             if (path == null) throw new ArgumentNullException(nameof(path));
-            if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0) throw new ArgumentException("Negative value provided; file size limit must be non-negative");
-            if (shared && buffered)
-                throw new ArgumentException("Buffered writes are not available when file sharing is enabled.", nameof(buffered));
+            if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0) throw new ArgumentException("Negative value provided; file size limit must be non-negative.", nameof(fileSizeLimitBytes));
+            if (retainedFileCountLimit.HasValue && retainedFileCountLimit < 1) throw new ArgumentException("At least one file must be retained.", nameof(retainedFileCountLimit));
+            if (shared && buffered) throw new ArgumentException("Buffered writes are not available when file sharing is enabled.", nameof(buffered));
 
             ILogEventSink sink;
-            try
+
+            if (rollOnFileSizeLimit || rollingInterval != RollingInterval.Infinite)
             {
-                if (shared)
-                {
-                    sink = new SharedFileSink(path, formatter, fileSizeLimitBytes);
-                }
-                else
-                {
-                    sink = new FileSink(path, formatter, fileSizeLimitBytes, buffered: buffered);
-                }
+                sink = new RollingFileSink(path, formatter, fileSizeLimitBytes, retainedFileCountLimit, encoding, buffered, shared, rollingInterval, rollOnFileSizeLimit);
             }
-            catch (Exception ex)
+            else
             {
-                SelfLog.WriteLine("Unable to open file sink for {0}: {1}", path, ex);
+                try
+                {
+#pragma warning disable 618
+                    if (shared)
+                    {
+                        sink = new SharedFileSink(path, formatter, fileSizeLimitBytes);
+                    }
+                    else
+                    {
+                        sink = new FileSink(path, formatter, fileSizeLimitBytes, buffered: buffered);
+                    }
+#pragma warning restore 618
+                }
+                catch (Exception ex)
+                {
+                    SelfLog.WriteLine("Unable to open file sink for {0}: {1}", path, ex);
 
-                if (propagateExceptions)
-                    throw;
+                    if (propagateExceptions)
+                        throw;
 
-                return addSink(new NullSink(), LevelAlias.Maximum, null);
+                    return addSink(new NullSink(), LevelAlias.Maximum, null);
+                }
             }
 
             if (flushToDiskInterval.HasValue)
