@@ -116,7 +116,7 @@ namespace Serilog.Sinks.File.Tests
             IEnumerable<LogEvent> events,
             Action<IList<string>> verifyWritten = null)
         {
-            var fileName = Some.String() + "-{Date}.txt";
+            var fileName = Some.String() + "-.txt";
             var folder = Some.TempFolderPath();
             var pathFormat = Path.Combine(folder, fileName);
 
@@ -133,7 +133,7 @@ namespace Serilog.Sinks.File.Tests
                     Clock.SetTestDateTimeNow(@event.Timestamp.DateTime);
                     log.Write(@event);
 
-                    var expected = pathFormat.Replace("{Date}", @event.Timestamp.ToString("yyyyMMdd"));
+                    var expected = pathFormat.Replace(".txt", @event.Timestamp.ToString("yyyyMMdd") + ".txt");
                     Assert.True(System.IO.File.Exists(expected));
 
                     verified.Add(expected);

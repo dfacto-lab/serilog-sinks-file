@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using Serilog.Events;
 using Serilog.Parsing;
+using Xunit.Sdk;
 
 namespace Serilog.Sinks.File.Tests.Support
 {
@@ -39,6 +41,20 @@ namespace Serilog.Sinks.File.Tests.Support
         public static DateTimeOffset OffsetInstant()
         {
             return new DateTimeOffset(Instant());
+        }
+
+        public static LogEvent LogEvent(string messageTemplate, params object[] propertyValues)
+        {
+            var log = new LoggerConfiguration().CreateLogger();
+            MessageTemplate template;
+            IEnumerable<LogEventProperty> properties;
+#pragma warning disable Serilog004 // Constant MessageTemplate verifier
+            if (!log.BindMessageTemplate(messageTemplate, propertyValues, out template, out properties))
+#pragma warning restore Serilog004 // Constant MessageTemplate verifier
+            {
+                throw new XunitException("Template could not be bound.");
+            }
+            return new LogEvent(DateTimeOffset.Now, LogEventLevel.Information, null, template, properties);
         }
 
         public static LogEvent LogEvent(DateTimeOffset? timestamp = null, LogEventLevel level = LogEventLevel.Information)

@@ -5,7 +5,7 @@ using Serilog.Tests.Support;
 using Xunit;
 using System.IO;
 
-namespace Serilog.Tests
+namespace Serilog.Sinks.File.Tests
 {
     public class FileLoggerConfigurationExtensionsTests
     {

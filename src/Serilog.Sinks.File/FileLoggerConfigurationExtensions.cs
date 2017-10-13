@@ -69,12 +69,10 @@ namespace Serilog
             bool shared,
             TimeSpan? flushToDiskInterval)
         {
-            if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));
-            if (path == null) throw new ArgumentNullException(nameof(path));
-            if (outputTemplate == null) throw new ArgumentNullException(nameof(outputTemplate));
-
-            var formatter = new MessageTemplateTextFormatter(outputTemplate, formatProvider);
-            return File(sinkConfiguration, formatter, path, restrictedToMinimumLevel, fileSizeLimitBytes, levelSwitch, buffered: buffered, shared: shared, flushToDiskInterval: flushToDiskInterval);
+            // ReSharper disable once RedundantArgumentDefaultValue
+            return File(sinkConfiguration, path, restrictedToMinimumLevel, outputTemplate, formatProvider, fileSizeLimitBytes,
+                levelSwitch, buffered, shared, flushToDiskInterval, RollingInterval.Infinite, false,
+                null, null);
         }
 
         /// <summary>
@@ -112,7 +110,9 @@ namespace Serilog
             bool shared,
             TimeSpan? flushToDiskInterval)
         {
-            return ConfigureFile(sinkConfiguration.Sink, formatter, path, restrictedToMinimumLevel, fileSizeLimitBytes, levelSwitch, buffered: buffered, shared: shared, flushToDiskInterval: flushToDiskInterval);
+            // ReSharper disable once RedundantArgumentDefaultValue
+            return File(sinkConfiguration, formatter, path, restrictedToMinimumLevel, fileSizeLimitBytes, levelSwitch,
+                buffered, shared, flushToDiskInterval, RollingInterval.Infinite, false, null, null);
         }
 
         /// <summary>
@@ -163,7 +163,9 @@ namespace Serilog
             if (outputTemplate == null) throw new ArgumentNullException(nameof(outputTemplate));
 
             var formatter = new MessageTemplateTextFormatter(outputTemplate, formatProvider);
-            return File(sinkConfiguration, formatter, path, restrictedToMinimumLevel, fileSizeLimitBytes, levelSwitch, buffered: buffered, shared: shared, flushToDiskInterval: flushToDiskInterval, rollingInterval: rollingInterval, rollOnFileSizeLimit: rollOnFileSizeLimit);
+            return File(sinkConfiguration, formatter, path, restrictedToMinimumLevel, fileSizeLimitBytes,
+                levelSwitch, buffered, shared, flushToDiskInterval,
+                rollingInterval, rollOnFileSizeLimit, retainedFileCountLimit, encoding);
         }
 
         /// <summary>
@@ -211,8 +213,7 @@ namespace Serilog
             Encoding encoding = null)
         {
             return ConfigureFile(sinkConfiguration.Sink, formatter, path, restrictedToMinimumLevel, fileSizeLimitBytes, levelSwitch,
-                buffered: buffered, shared: shared, flushToDiskInterval: flushToDiskInterval, rollingInterval: rollingInterval,
-                rollOnFileSizeLimit: rollOnFileSizeLimit, retainedFileCountLimit: retainedFileCountLimit, encoding: encoding);
+                buffered, false, shared, flushToDiskInterval, encoding, rollingInterval, rollOnFileSizeLimit, retainedFileCountLimit);
         }
 
         /// <summary>
@@ -268,24 +269,25 @@ namespace Serilog
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
             LoggingLevelSwitch levelSwitch = null)
         {
-            return ConfigureFile(sinkConfiguration.Sink, formatter, path, restrictedToMinimumLevel, null, levelSwitch, false, true);
+            return ConfigureFile(sinkConfiguration.Sink, formatter, path, restrictedToMinimumLevel, null, levelSwitch, false, true,
+                false, null, null, RollingInterval.Infinite, false, null);
         }
 
         static LoggerConfiguration ConfigureFile(
             this Func<ILogEventSink, LogEventLevel, LoggingLevelSwitch, LoggerConfiguration> addSink,
             ITextFormatter formatter,
             string path,
-            LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
-            long? fileSizeLimitBytes = DefaultFileSizeLimitBytes,
-            LoggingLevelSwitch levelSwitch = null,
-            bool buffered = false,
-            bool propagateExceptions = false,
-            bool shared = false,
-            TimeSpan? flushToDiskInterval = null,
-            Encoding encoding = null,
-            RollingInterval rollingInterval = RollingInterval.Infinite,
-            bool rollOnFileSizeLimit = false,
-            int? retainedFileCountLimit = DefaultRetainedFileCountLimit)
+            LogEventLevel restrictedToMinimumLevel,
+            long? fileSizeLimitBytes,
+            LoggingLevelSwitch levelSwitch,
+            bool buffered,
+            bool propagateExceptions,
+            bool shared,
+            TimeSpan? flushToDiskInterval,
+            Encoding encoding,
+            RollingInterval rollingInterval,
+            bool rollOnFileSizeLimit,
+            int? retainedFileCountLimit)
         {
             if (addSink == null) throw new ArgumentNullException(nameof(addSink));
             if (formatter == null) throw new ArgumentNullException(nameof(formatter));
