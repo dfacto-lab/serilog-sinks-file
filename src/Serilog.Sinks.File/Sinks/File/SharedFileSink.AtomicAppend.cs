@@ -27,7 +27,8 @@ namespace Serilog.Sinks.File
     /// <summary>
     /// Write log events to a disk file.
     /// </summary>
-    public sealed class SharedFileSink : ILogEventSink, IFlushableFileSink, IDisposable
+    [Obsolete("This type will be removed from the public API in a future version; use `WriteTo.File(shared: true)` instead.")]
+    public sealed class SharedFileSink : IFileSink, IDisposable
     {
         readonly MemoryStream _writeBuffer;
         readonly string _path;
@@ -84,11 +85,7 @@ namespace Serilog.Sinks.File
                 encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         }
 
-        /// <summary>
-        /// Emit the provided log event to the sink.
-        /// </summary>
-        /// <param name="logEvent">The log event to write.</param>
-        public void Emit(LogEvent logEvent)
+        bool IFileSink.EmitOrOverflow(LogEvent logEvent)
         {
             if (logEvent == null) throw new ArgumentNullException(nameof(logEvent));
 
@@ -121,13 +118,14 @@ namespace Serilog.Sinks.File
                         try
                         {
                             if (_fileOutput.Length >= _fileSizeLimitBytes.Value)
-                                return;
+                                return false;
                         }
                         catch (FileNotFoundException) { } // Cheaper and more reliable than checking existence
                     }
 
                     _fileOutput.Write(bytes, 0, length);
                     _fileOutput.Flush();
+                    return true;
                 }
                 catch
                 {
@@ -143,6 +141,14 @@ namespace Serilog.Sinks.File
             }
         }
 
+        /// <summary>
+        /// Emit the provided log event to the sink.
+        /// </summary>
+        /// <param name="logEvent">The log event to write.</param>
+        public void Emit(LogEvent logEvent)
+        {
+            ((IFileSink)this).EmitOrOverflow(logEvent);
+        }
 
         /// <inheritdoc />
         public void Dispose()

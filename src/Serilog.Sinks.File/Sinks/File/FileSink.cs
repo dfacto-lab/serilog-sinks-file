@@ -15,7 +15,6 @@
 using System;
 using System.IO;
 using System.Text;
-using Serilog.Core;
 using Serilog.Events;
 using Serilog.Formatting;
 
@@ -24,7 +23,8 @@ namespace Serilog.Sinks.File
     /// <summary>
     /// Write log events to a disk file.
     /// </summary>
-    public sealed class FileSink : ILogEventSink, IFlushableFileSink, IDisposable
+    [Obsolete("This type will be removed from the public API in a future version; use `WriteTo.File()` instead.")]
+    public sealed class FileSink : IFileSink, IDisposable
     {
         readonly TextWriter _output;
         readonly FileStream _underlyingStream;
@@ -50,7 +50,7 @@ namespace Serilog.Sinks.File
         {
             if (path == null) throw new ArgumentNullException(nameof(path));
             if (textFormatter == null) throw new ArgumentNullException(nameof(textFormatter));
-            if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0) throw new ArgumentException("Negative value provided; file size limit must be non-negative");
+            if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0) throw new ArgumentException("Negative value provided; file size limit must be non-negative.");
 
             _textFormatter = textFormatter;
             _fileSizeLimitBytes = fileSizeLimitBytes;
@@ -71,11 +71,7 @@ namespace Serilog.Sinks.File
             _output = new StreamWriter(outputStream, encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         }
 
-        /// <summary>
-        /// Emit the provided log event to the sink.
-        /// </summary>
-        /// <param name="logEvent">The log event to write.</param>
-        public void Emit(LogEvent logEvent)
+        bool IFileSink.EmitOrOverflow(LogEvent logEvent)
         {
             if (logEvent == null) throw new ArgumentNullException(nameof(logEvent));
             lock (_syncRoot)
@@ -83,13 +79,24 @@ namespace Serilog.Sinks.File
                 if (_fileSizeLimitBytes != null)
                 {
                     if (_countingStreamWrapper.CountedLength >= _fileSizeLimitBytes.Value)
-                        return;
+                        return false;
                 }
 
                 _textFormatter.Format(logEvent, _output);
                 if (!_buffered)
                     _output.Flush();
+
+                return true;
             }
+        }
+
+        /// <summary>
+        /// Emit the provided log event to the sink.
+        /// </summary>
+        /// <param name="logEvent">The log event to write.</param>
+        public void Emit(LogEvent logEvent)
+        {
+            ((IFileSink) this).EmitOrOverflow(logEvent);
         }
 
         /// <inheritdoc />

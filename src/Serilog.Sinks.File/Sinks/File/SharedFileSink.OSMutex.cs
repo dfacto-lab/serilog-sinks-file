@@ -28,7 +28,7 @@ namespace Serilog.Sinks.File
     /// <summary>
     /// Write log events to a disk file.
     /// </summary>
-    public sealed class SharedFileSink : ILogEventSink, IFlushableFileSink, IDisposable
+    public sealed class SharedFileSink : IFileSink, IDisposable
     {
         readonly TextWriter _output;
         readonly FileStream _underlyingStream;
@@ -72,18 +72,14 @@ namespace Serilog.Sinks.File
             _output = new StreamWriter(_underlyingStream, encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         }
 
-        /// <summary>
-        /// Emit the provided log event to the sink.
-        /// </summary>
-        /// <param name="logEvent">The log event to write.</param>
-        public void Emit(LogEvent logEvent)
+        bool IFileSink.EmitOrOverflow(LogEvent logEvent)
         {
             if (logEvent == null) throw new ArgumentNullException(nameof(logEvent));
 
             lock (_syncRoot)
             {
                 if (!TryAcquireMutex())
-                    return;
+                    return true; // We didn't overflow, but, roll-on-size should not be attempted
 
                 try
                 {
@@ -91,18 +87,28 @@ namespace Serilog.Sinks.File
                     if (_fileSizeLimitBytes != null)
                     {
                         if (_underlyingStream.Length >= _fileSizeLimitBytes.Value)
-                            return;
+                            return false;
                     }
 
                     _textFormatter.Format(logEvent, _output);
                     _output.Flush();
                     _underlyingStream.Flush();
+                    return true;
                 }
                 finally
                 {
                     ReleaseMutex();
                 }
             }
+        }
+
+        /// <summary>
+        /// Emit the provided log event to the sink.
+        /// </summary>
+        /// <param name="logEvent">The log event to write.</param>
+        public void Emit(LogEvent logEvent)
+        {
+            ((IFileSink)this).EmitOrOverflow(logEvent);
         }
 
         /// <inheritdoc />

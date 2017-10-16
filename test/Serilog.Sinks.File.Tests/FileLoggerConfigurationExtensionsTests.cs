@@ -5,7 +5,7 @@ using Serilog.Tests.Support;
 using Xunit;
 using System.IO;
 
-namespace Serilog.Tests
+namespace Serilog.Sinks.File.Tests
 {
     public class FileLoggerConfigurationExtensionsTests
     {
@@ -77,6 +77,14 @@ namespace Serilog.Tests
                 log.Information("Hello");
                 Thread.Sleep(TimeSpan.FromSeconds(1));
             }
+        }
+
+        [Fact]
+        public void BufferingIsNotAvailableWhenSharingEnabled()
+        {
+            Assert.Throws<ArgumentException>(() =>
+                new LoggerConfiguration()
+                    .WriteTo.File("logs", buffered: true, shared: true));
         }
     }
 }
