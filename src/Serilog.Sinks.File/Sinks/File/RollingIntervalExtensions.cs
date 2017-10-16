@@ -46,9 +46,9 @@ namespace Serilog.Sinks.File
                 case RollingInterval.Infinite:
                     return null;
                 case RollingInterval.Year:
-                    return new DateTime(instant.Year, 0, 0, 0, 0, 0, instant.Kind);
+                    return new DateTime(instant.Year, 1, 1, 0, 0, 0, instant.Kind);
                 case RollingInterval.Month:
-                    return new DateTime(instant.Year, instant.Month, 0, 0, 0, 0, instant.Kind);
+                    return new DateTime(instant.Year, instant.Month, 1, 0, 0, 0, instant.Kind);
                 case RollingInterval.Day:
                     return new DateTime(instant.Year, instant.Month, instant.Day, 0, 0, 0, instant.Kind);
                 case RollingInterval.Hour:
