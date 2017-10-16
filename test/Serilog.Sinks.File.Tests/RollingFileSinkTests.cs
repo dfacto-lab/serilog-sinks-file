@@ -88,9 +88,9 @@ namespace Serilog.Sinks.File.Tests
                 var files = Directory.GetFiles(temp.Path).OrderBy(p => p).ToArray();
 
                 Assert.Equal(3, files.Length);
-                Assert.False(files[0].Contains("_000.txt"), files[0]);
-                Assert.True(files[1].Contains("_001.txt"), files[1]);
-                Assert.True(files[2].Contains("_002.txt"), files[2]);
+                Assert.False(files[0].EndsWith("_000.txt"), files[0]);
+                Assert.True(files[1].EndsWith("_001.txt"), files[1]);
+                Assert.True(files[2].EndsWith("_002.txt"), files[2]);
             }
         }
 
