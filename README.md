@@ -160,10 +160,11 @@ The default format above corresponds to an output template like:
 
 ##### JSON event formatting
 
-To write events to the file in an alternative format such as JSON, pass an `ITextFormatter` as the first argument:
+To write events to the file in an alternative format such as [JSON](https://github.com/serilog/serilog-formatting-compact), pass an `ITextFormatter` as the first argument:
 
 ```csharp
-    .WriteTo.File(new JsonFormatter(), "log.txt")
+    // Install-Package Serilog.Formatting.Compact
+    .WriteTo.File(new CompactJsonFormatter(), "log.txt")
 ```
 
 ### Shared log files
