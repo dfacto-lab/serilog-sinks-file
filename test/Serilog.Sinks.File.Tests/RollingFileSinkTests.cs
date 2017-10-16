@@ -85,7 +85,9 @@ namespace Serilog.Sinks.File.Tests
 
                 log.Write(e1); log.Write(e2); log.Write(e3);
 
-                var files = Directory.GetFiles(temp.Path).OrderBy(p => p).ToArray();
+                var files = Directory.GetFiles(temp.Path)
+                    .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
 
                 Assert.Equal(3, files.Length);
                 Assert.True(files[0].EndsWith(fileName), files[0]);
