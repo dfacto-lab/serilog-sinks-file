@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using Xunit;
 using Serilog.Events;
@@ -84,7 +85,7 @@ namespace Serilog.Sinks.File.Tests
 
                 log.Write(e1); log.Write(e2); log.Write(e3);
 
-                var files = Directory.GetFiles(temp.Path);
+                var files = Directory.GetFiles(temp.Path).OrderBy(p => p).ToArray();
 
                 Assert.Equal(3, files.Length);
                 Assert.False(files[0].Contains("_000.txt"));
