@@ -1,4 +1,4 @@
-﻿// Copyright 2013-2016 Serilog Contributors
+﻿// Copyright 2013-2017 Serilog Contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -136,7 +136,7 @@ namespace Serilog
         /// <param name="flushToDiskInterval">If provided, a full disk flush will be performed periodically at the specified interval.</param>
         /// <param name="rollingInterval">The interval at which logging will roll over to a new file.</param>
         /// <param name="rollOnFileSizeLimit">If <code>true</code>, a new file will be created when the file size limit is reached. Filenames 
-        /// will have a number appended in the format <code>_NNNNN</code>, with the first filename given no number.</param>
+        /// will have a number appended in the format <code>_NNN</code>, with the first filename given no number.</param>
         /// <param name="retainedFileCountLimit">The maximum number of log files that will be retained,
         /// including the current log file. For unlimited retention, pass null. The default is 31.</param>
         /// <param name="encoding">Character encoding used to write the text file. The default is UTF-8 without BOM.</param>
@@ -191,7 +191,7 @@ namespace Serilog
         /// <param name="flushToDiskInterval">If provided, a full disk flush will be performed periodically at the specified interval.</param>
         /// <param name="rollingInterval">The interval at which logging will roll over to a new file.</param>
         /// <param name="rollOnFileSizeLimit">If <code>true</code>, a new file will be created when the file size limit is reached. Filenames 
-        /// will have a number appended in the format <code>_NNNNN</code>, with the first filename given no number.</param>
+        /// will have a number appended in the format <code>_NNN</code>, with the first filename given no number.</param>
         /// <param name="retainedFileCountLimit">The maximum number of log files that will be retained,
         /// including the current log file. For unlimited retention, pass null. The default is 31.</param>
         /// <param name="encoding">Character encoding used to write the text file. The default is UTF-8 without BOM.</param>
