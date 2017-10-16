@@ -54,12 +54,12 @@ namespace Serilog.Sinks.File.Tests
         public void WhenRetentionCountIsSetOldFilesAreDeleted()
         {
             LogEvent e1 = Some.InformationEvent(),
-                     e2 = Some.InformationEvent(e1.Timestamp.AddDays(1)),
-                     e3 = Some.InformationEvent(e2.Timestamp.AddDays(5));
+                e2 = Some.InformationEvent(e1.Timestamp.AddDays(1)),
+                e3 = Some.InformationEvent(e2.Timestamp.AddDays(5));
 
             TestRollingEventSequence(
                 (pf, wt) => wt.File(pf, retainedFileCountLimit: 2, rollingInterval: RollingInterval.Day),
-                new[] { e1, e2, e3 },
+                new[] {e1, e2, e3},
                 files =>
                 {
                     Assert.Equal(3, files.Count);
@@ -67,6 +67,30 @@ namespace Serilog.Sinks.File.Tests
                     Assert.True(System.IO.File.Exists(files[1]));
                     Assert.True(System.IO.File.Exists(files[2]));
                 });
+        }
+
+        [Fact]
+        public void WhenSizeLimitIsBreachedNewFilesCreated()
+        {
+            var fileName = Some.String() + ".txt";
+            using (var temp = new TempFolder())
+            using (var log = new LoggerConfiguration()
+                .WriteTo.File(Path.Combine(temp.Path, fileName), rollOnFileSizeLimit: true, fileSizeLimitBytes: 1)
+                .CreateLogger())
+            {
+                LogEvent e1 = Some.InformationEvent(),
+                    e2 = Some.InformationEvent(e1.Timestamp),
+                    e3 = Some.InformationEvent(e1.Timestamp);
+
+                log.Write(e1); log.Write(e2); log.Write(e3);
+
+                var files = Directory.GetFiles(temp.Path);
+
+                Assert.Equal(3, files.Length);
+                Assert.False(files[0].Contains("_000.txt"));
+                Assert.True(files[1].Contains("_001.txt"));
+                Assert.True(files[2].Contains("_002.txt"));
+            }
         }
 
         [Fact]
