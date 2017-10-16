@@ -10,21 +10,21 @@ namespace Serilog.Sinks.File.Tests
         [Fact]
         public void TheLogFileIncludesDateToken()
         {
-            var roller = new PathRoller("Logs\\log-.txt", RollingInterval.Day);
+            var roller = new PathRoller(Path.Combine("Logs", "log-.txt"), RollingInterval.Day);
             var now = new DateTime(2013, 7, 14, 3, 24, 9, 980);
             string path;
             roller.GetLogFilePath(now, null, out path);
-            AssertEqualAbsolute("Logs\\log-20130714.txt", path);
+            AssertEqualAbsolute(Path.Combine("Logs", "log-20130714.txt"), path);
         }
 
         [Fact]
         public void ANonZeroIncrementIsIncludedAndPadded()
         {
-            var roller = new PathRoller("Logs\\log-.txt", RollingInterval.Day);
+            var roller = new PathRoller(Path.Combine("Logs", "log-.txt"), RollingInterval.Day);
             var now = new DateTime(2013, 7, 14, 3, 24, 9, 980);
             string path;
             roller.GetLogFilePath(now, 12, out path);
-            AssertEqualAbsolute("Logs\\log-20130714_012.txt", path);
+            AssertEqualAbsolute(Path.Combine("Logs", "log-20130714_012.txt"), path);
         }
 
         static void AssertEqualAbsolute(string path1, string path2)
@@ -37,18 +37,18 @@ namespace Serilog.Sinks.File.Tests
         [Fact]
         public void TheRollerReturnsTheLogFileDirectory()
         {
-            var roller = new PathRoller("Logs\\log-.txt", RollingInterval.Day);
+            var roller = new PathRoller(Path.Combine("Logs", "log-.txt"), RollingInterval.Day);
             AssertEqualAbsolute("Logs", roller.LogFileDirectory);
         }
 
         [Fact]
         public void TheLogFileIsNotRequiredToIncludeAnExtension()
         {
-            var roller = new PathRoller("Logs\\log-", RollingInterval.Day);
+            var roller = new PathRoller(Path.Combine("Logs", "log-"), RollingInterval.Day);
             var now = new DateTime(2013, 7, 14, 3, 24, 9, 980);
             string path;
             roller.GetLogFilePath(now, null, out path);
-            AssertEqualAbsolute("Logs\\log-20130714", path);
+            AssertEqualAbsolute(Path.Combine("Logs", "log-20130714"), path);
         }
 
         [Fact]
@@ -74,7 +74,7 @@ namespace Serilog.Sinks.File.Tests
         [Fact]
         public void TheDirectorSearchPatternUsesWildcardInPlaceOfDate()
         {
-            var roller = new PathRoller("Logs\\log-.txt", RollingInterval.Day);
+            var roller = new PathRoller(Path.Combine("Logs", "log-.txt"), RollingInterval.Day);
             Assert.Equal("log-*.txt", roller.DirectorySearchPattern);
         }
 
