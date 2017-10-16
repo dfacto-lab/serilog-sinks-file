@@ -14,7 +14,7 @@ namespace Serilog.Sinks.File.Tests.Support
         public TempFolder(string name)
         {
             _tempFolder = System.IO.Path.Combine(
-                Environment.GetEnvironmentVariable("TMP"),
+                Environment.GetEnvironmentVariable("TMP") ?? Environment.GetEnvironmentVariable("TMPDIR") ?? "/tmp",
                 "Serilog.Sinks.File.Tests",
                 Session.ToString("n"),
                 name);
