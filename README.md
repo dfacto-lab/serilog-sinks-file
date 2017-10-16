@@ -7,7 +7,7 @@ Writes [Serilog](https://serilog.net) events to one or more text files.
 Install the [Serilog.Sinks.File](https://nuget.org/serilog/serilog-sinks-file) package from NuGet:
 
 ```powershell
-Install-Package Serilog.Sinks.File -Pre
+Install-Package Serilog.Sinks.File
 ```
 
 To configure the sink in C# code, call `WriteTo.File()` during logger configuration:
