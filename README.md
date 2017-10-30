@@ -86,7 +86,7 @@ In your application's `App.config` or `Web.config` file, specify the file sink a
 <configuration>
   <appSettings>
     <add key="serilog:using:File" value="Serilog.Sinks.File" />
-    <add key="serilog:write-to:File.pathFormat" value="log.txt" />
+    <add key="serilog:write-to:File.path" value="log.txt" />
 ```
 
 The parameters that can be set through the `serilog:write-to:File` keys are the method parameters accepted by the `WriteTo.File()` configuration method. This means, for example, that the `fileSizeLimitBytes` parameter can be set with:
