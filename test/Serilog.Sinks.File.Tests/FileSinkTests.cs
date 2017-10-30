@@ -1,11 +1,11 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using Xunit;
 using Serilog.Formatting.Json;
 using Serilog.Sinks.File.Tests.Support;
 using Serilog.Tests.Support;
 using System.Text;
-using Serilog.Tests;
+
+#pragma warning disable 618
 
 namespace Serilog.Sinks.File.Tests
 {
@@ -116,11 +116,10 @@ namespace Serilog.Sinks.File.Tests
         [Fact]
         public void WhenLimitIsNotSpecifiedAndEncodingHasPreambleDataIsCorrectlyAppendedToFileSink()
         {
-            long? maxBytes = null;
             var encoding = Encoding.UTF8;
 
             Assert.True(encoding.GetPreamble().Length > 0);
-            WriteTwoEventsAndCheckOutputFileLength(maxBytes, encoding);
+            WriteTwoEventsAndCheckOutputFileLength(null, encoding);
         }
 
         [Fact]
@@ -136,11 +135,10 @@ namespace Serilog.Sinks.File.Tests
         [Fact]
         public void WhenLimitIsNotSpecifiedAndEncodingHasNoPreambleDataIsCorrectlyAppendedToFileSink()
         {
-            long? maxBytes = null;
             var encoding = new UTF8Encoding(false);
 
             Assert.Equal(0, encoding.GetPreamble().Length);
-            WriteTwoEventsAndCheckOutputFileLength(maxBytes, encoding);
+            WriteTwoEventsAndCheckOutputFileLength(null, encoding);
         }
 
         static void WriteTwoEventsAndCheckOutputFileLength(long? maxBytes, Encoding encoding)
