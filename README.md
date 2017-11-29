@@ -4,7 +4,7 @@ Writes [Serilog](https://serilog.net) events to one or more text files.
 
 ### Getting started
 
-Install the [Serilog.Sinks.File](https://nuget.org/serilog/serilog-sinks-file) package from NuGet:
+Install the [Serilog.Sinks.File](https://www.nuget.org/packages/Serilog.Sinks.File/) package from NuGet:
 
 ```powershell
 Install-Package Serilog.Sinks.File
