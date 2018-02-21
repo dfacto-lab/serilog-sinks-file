@@ -155,7 +155,7 @@ The default format above corresponds to an output template like:
 
 ```csharp
     .WriteTo.File("log.txt",
-        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{u3}] {Message:lj}{NewLine}{Exception}")
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
 ```
 
 ##### JSON event formatting
