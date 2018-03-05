@@ -39,7 +39,7 @@ To avoid bringing down apps with runaway disk usage the file sink **limits file 
 For the same reason, only **the most recent 31 files** are retained by default (i.e. one long month). To change or remove this limit, pass the `retainedFileCountLimit` parameter.
 
 ```csharp
-    .WriteTo.RollingFile("log.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: null)
+    .WriteTo.File("log.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: null)
 ```
 
 ### Rolling policies
