@@ -43,10 +43,12 @@ namespace Serilog.Sinks.File
         /// <param name="encoding">Character encoding used to write the text file. The default is UTF-8 without BOM.</param>
         /// <param name="buffered">Indicates if flushing to the output file can be buffered or not. The default
         /// is false.</param>
+        /// <param name="wrapper">Optionally enables wrapping the output stream in another stream, such as a GZipStream.</param>
         /// <returns>Configuration object allowing method chaining.</returns>
         /// <remarks>The file will be written using the UTF-8 character set.</remarks>
         /// <exception cref="IOException"></exception>
-        public FileSink(string path, ITextFormatter textFormatter, long? fileSizeLimitBytes, Encoding encoding = null, bool buffered = false)
+        public FileSink(string path, ITextFormatter textFormatter, long? fileSizeLimitBytes, Encoding encoding = null, bool buffered = false,
+            StreamWrapper wrapper = null)
         {
             if (path == null) throw new ArgumentNullException(nameof(path));
             if (textFormatter == null) throw new ArgumentNullException(nameof(textFormatter));
@@ -66,6 +68,11 @@ namespace Serilog.Sinks.File
             if (_fileSizeLimitBytes != null)
             {
                 outputStream = _countingStreamWrapper = new WriteCountingStream(_underlyingStream);
+            }
+
+            if (wrapper != null)
+            {
+                outputStream = wrapper.Wrap(outputStream);
             }
 
             _output = new StreamWriter(outputStream, encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));

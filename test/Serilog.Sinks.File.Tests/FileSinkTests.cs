@@ -1,9 +1,11 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
+using System.Text;
 using Xunit;
 using Serilog.Formatting.Json;
 using Serilog.Sinks.File.Tests.Support;
 using Serilog.Tests.Support;
-using System.Text;
 
 #pragma warning disable 618
 
@@ -141,6 +143,42 @@ namespace Serilog.Sinks.File.Tests
             WriteTwoEventsAndCheckOutputFileLength(null, encoding);
         }
 
+        [Fact]
+        public void WhenStreamWrapperIsSpecifiedOutputStreamIsWrapped()
+        {
+            var gzipWrapper = new GZipStreamWrapper();
+
+            using (var tmp = TempFolder.ForCaller())
+            {
+                var nonexistent = tmp.AllocateFilename("txt");
+                var evt = Some.LogEvent("Hello, world!");
+
+                using (var sink = new FileSink(nonexistent, new JsonFormatter(), null, wrapper: gzipWrapper))
+                {
+                    sink.Emit(evt);
+                    sink.Emit(evt);
+                }
+
+                // Ensure the data was written through the wrapping GZipStream, by decompressing and comparing against
+                // what we wrote
+                var lines = new List<string>();
+                using (var textStream = new MemoryStream())
+                {
+                    using (var fs = System.IO.File.OpenRead(nonexistent))
+                    using (var decompressStream = new GZipStream(fs, CompressionMode.Decompress))
+                    {
+                        decompressStream.CopyTo(textStream);
+                    }
+
+                    textStream.Position = 0;
+                    lines = textStream.ReadAllLines();
+                }
+
+                Assert.Equal(2, lines.Count);
+                Assert.Contains("Hello, world!", lines[0]);
+            }
+        }
+
         static void WriteTwoEventsAndCheckOutputFileLength(long? maxBytes, Encoding encoding)
         {
             using (var tmp = TempFolder.ForCaller())
@@ -170,4 +208,3 @@ namespace Serilog.Sinks.File.Tests
         }
     }
 }
-
