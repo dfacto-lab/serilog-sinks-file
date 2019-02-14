@@ -9,10 +9,13 @@ namespace Serilog
     public abstract class FileLifecycleHooks
     {
         /// <summary>
-        /// Wraps <paramref name="sourceStream"/> in another stream, such as a GZipStream, then returns the wrapped stream
+        /// Wraps <paramref name="underlyingStream"/> in another stream, such as a GZipStream, then returns the wrapped stream
         /// </summary>
-        /// <param name="sourceStream">The source log file stream</param>
+        /// <remarks>
+        /// Serilog is responsible for disposing of the wrapped stream
+        /// </remarks>
+        /// <param name="underlyingStream">The underlying log file stream</param>
         /// <returns>The wrapped stream</returns>
-        public abstract Stream Wrap(Stream sourceStream);
+        public abstract Stream Wrap(Stream underlyingStream);
     }
 }
