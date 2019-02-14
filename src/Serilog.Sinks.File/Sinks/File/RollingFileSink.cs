@@ -35,7 +35,7 @@ namespace Serilog.Sinks.File
         readonly bool _buffered;
         readonly bool _shared;
         readonly bool _rollOnFileSizeLimit;
-        readonly StreamWrapper _wrapper;
+        readonly FileLifecycleHooks _hooks;
 
         readonly object _syncRoot = new object();
         bool _isDisposed;
@@ -52,7 +52,7 @@ namespace Serilog.Sinks.File
                               bool shared,
                               RollingInterval rollingInterval,
                               bool rollOnFileSizeLimit,
-                              StreamWrapper wrapper = null)
+                              FileLifecycleHooks hooks = null)
         {
             if (path == null) throw new ArgumentNullException(nameof(path));
             if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0) throw new ArgumentException("Negative value provided; file size limit must be non-negative");
@@ -66,7 +66,7 @@ namespace Serilog.Sinks.File
             _buffered = buffered;
             _shared = shared;
             _rollOnFileSizeLimit = rollOnFileSizeLimit;
-            _wrapper = wrapper;
+            _hooks = hooks;
         }
 
         public void Emit(LogEvent logEvent)
@@ -147,7 +147,7 @@ namespace Serilog.Sinks.File
                 {
                     _currentFile = _shared ?
                         (IFileSink)new SharedFileSink(path, _textFormatter, _fileSizeLimitBytes, _encoding) :
-                        new FileSink(path, _textFormatter, _fileSizeLimitBytes, _encoding, _buffered, _wrapper);
+                        new FileSink(path, _textFormatter, _fileSizeLimitBytes, _encoding, _buffered, _hooks);
                     _currentFileSequence = sequence;
                 }
                 catch (IOException ex)

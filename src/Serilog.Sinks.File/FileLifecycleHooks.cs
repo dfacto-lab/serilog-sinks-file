@@ -1,11 +1,12 @@
-using System.IO;
 
 namespace Serilog
 {
+    using System.IO;
+
     /// <summary>
-    /// Wraps the log file's output stream in another stream, such as a GZipStream
+    /// Enables hooking into log file lifecycle events
     /// </summary>
-    public abstract class StreamWrapper
+    public abstract class FileLifecycleHooks
     {
         /// <summary>
         /// Wraps <paramref name="sourceStream"/> in another stream, such as a GZipStream, then returns the wrapped stream

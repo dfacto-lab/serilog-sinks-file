@@ -140,7 +140,7 @@ namespace Serilog
         /// <param name="retainedFileCountLimit">The maximum number of log files that will be retained,
         /// including the current log file. For unlimited retention, pass null. The default is 31.</param>
         /// <param name="encoding">Character encoding used to write the text file. The default is UTF-8 without BOM.</param>
-        /// <param name="wrapper">Optionally enables wrapping the output stream in another stream, such as a GZipStream.</param>
+        /// <param name="hooks">Optionally enables hooking into log file lifecycle events.</param>
         /// <returns>Configuration object allowing method chaining.</returns>
         /// <remarks>The file will be written using the UTF-8 character set.</remarks>
         public static LoggerConfiguration File(
@@ -158,7 +158,7 @@ namespace Serilog
             bool rollOnFileSizeLimit = false,
             int? retainedFileCountLimit = DefaultRetainedFileCountLimit,
             Encoding encoding = null,
-            StreamWrapper wrapper = null)
+            FileLifecycleHooks hooks = null)
         {
             if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));
             if (path == null) throw new ArgumentNullException(nameof(path));
@@ -167,7 +167,7 @@ namespace Serilog
             var formatter = new MessageTemplateTextFormatter(outputTemplate, formatProvider);
             return File(sinkConfiguration, formatter, path, restrictedToMinimumLevel, fileSizeLimitBytes,
                 levelSwitch, buffered, shared, flushToDiskInterval,
-                rollingInterval, rollOnFileSizeLimit, retainedFileCountLimit, encoding, wrapper);
+                rollingInterval, rollOnFileSizeLimit, retainedFileCountLimit, encoding, hooks);
         }
 
         /// <summary>
@@ -176,7 +176,7 @@ namespace Serilog
         /// <param name="sinkConfiguration">Logger sink configuration.</param>
         /// <param name="formatter">A formatter, such as <see cref="JsonFormatter"/>, to convert the log events into
         /// text for the file. If control of regular text formatting is required, use the other
-        /// overload of <see cref="File(LoggerSinkConfiguration, string, LogEventLevel, string, IFormatProvider, long?, LoggingLevelSwitch, bool, bool, TimeSpan?, RollingInterval, bool, int?, Encoding, StreamWrapper)"/>
+        /// overload of <see cref="File(LoggerSinkConfiguration, string, LogEventLevel, string, IFormatProvider, long?, LoggingLevelSwitch, bool, bool, TimeSpan?, RollingInterval, bool, int?, Encoding, FileLifecycleHooks)"/>
         /// and specify the outputTemplate parameter instead.
         /// </param>
         /// <param name="path">Path to the file.</param>
@@ -197,7 +197,7 @@ namespace Serilog
         /// <param name="retainedFileCountLimit">The maximum number of log files that will be retained,
         /// including the current log file. For unlimited retention, pass null. The default is 31.</param>
         /// <param name="encoding">Character encoding used to write the text file. The default is UTF-8 without BOM.</param>
-        /// <param name="wrapper">Optionally enables wrapping the output stream in another stream, such as a GZipStream.</param>
+        /// <param name="hooks">Optionally enables hooking into log file lifecycle events.</param>
         /// <returns>Configuration object allowing method chaining.</returns>
         /// <remarks>The file will be written using the UTF-8 character set.</remarks>
         public static LoggerConfiguration File(
@@ -214,11 +214,11 @@ namespace Serilog
             bool rollOnFileSizeLimit = false,
             int? retainedFileCountLimit = DefaultRetainedFileCountLimit,
             Encoding encoding = null,
-            StreamWrapper wrapper = null)
+            FileLifecycleHooks hooks = null)
         {
             return ConfigureFile(sinkConfiguration.Sink, formatter, path, restrictedToMinimumLevel, fileSizeLimitBytes, levelSwitch,
                 buffered, false, shared, flushToDiskInterval, encoding, rollingInterval, rollOnFileSizeLimit,
-                retainedFileCountLimit, wrapper);
+                retainedFileCountLimit, hooks);
         }
 
         /// <summary>
@@ -293,7 +293,7 @@ namespace Serilog
             RollingInterval rollingInterval,
             bool rollOnFileSizeLimit,
             int? retainedFileCountLimit,
-            StreamWrapper wrapper)
+            FileLifecycleHooks hooks)
         {
             if (addSink == null) throw new ArgumentNullException(nameof(addSink));
             if (formatter == null) throw new ArgumentNullException(nameof(formatter));
@@ -306,7 +306,7 @@ namespace Serilog
 
             if (rollOnFileSizeLimit || rollingInterval != RollingInterval.Infinite)
             {
-                sink = new RollingFileSink(path, formatter, fileSizeLimitBytes, retainedFileCountLimit, encoding, buffered, shared, rollingInterval, rollOnFileSizeLimit, wrapper);
+                sink = new RollingFileSink(path, formatter, fileSizeLimitBytes, retainedFileCountLimit, encoding, buffered, shared, rollingInterval, rollOnFileSizeLimit, hooks);
             }
             else
             {
@@ -315,7 +315,7 @@ namespace Serilog
 #pragma warning disable 618
                     if (shared)
                     {
-                        if (wrapper != null)
+                        if (hooks != null)
                         {
                             SelfLog.WriteLine("Unable to use output stream wrapper - these are not supported for shared log files");
                         }
@@ -324,7 +324,7 @@ namespace Serilog
                     }
                     else
                     {
-                        sink = new FileSink(path, formatter, fileSizeLimitBytes, buffered: buffered, wrapper: wrapper);
+                        sink = new FileSink(path, formatter, fileSizeLimitBytes, buffered: buffered, hooks: hooks);
                     }
 #pragma warning restore 618
                 }

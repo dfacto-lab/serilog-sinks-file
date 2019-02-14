@@ -100,7 +100,7 @@ namespace Serilog.Sinks.File.Tests
         [Fact]
         public void WhenStreamWrapperSpecifiedIsUsedForRolledFiles()
         {
-            var gzipWrapper = new GZipStreamWrapper();
+            var gzipWrapper = new GZipHooks();
             var fileName = Some.String() + ".txt";
 
             using (var temp = new TempFolder())
@@ -114,7 +114,7 @@ namespace Serilog.Sinks.File.Tests
                 };
 
                 using (var log = new LoggerConfiguration()
-                    .WriteTo.File(Path.Combine(temp.Path, fileName), rollOnFileSizeLimit: true, fileSizeLimitBytes: 1, wrapper: gzipWrapper)
+                    .WriteTo.File(Path.Combine(temp.Path, fileName), rollOnFileSizeLimit: true, fileSizeLimitBytes: 1, hooks: gzipWrapper)
                     .CreateLogger())
                 {
 

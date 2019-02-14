@@ -5,13 +5,13 @@ namespace Serilog.Sinks.File.Tests.Support
 {
     /// <inheritdoc />
     /// <summary>
-    /// Demonstrates the use of <seealso cref="T:Serilog.StreamWrapper" />, by compressing log output using GZip
+    /// Demonstrates the use of <seealso cref="T:Serilog.FileLifecycleHooks" />, by compressing log output using GZip
     /// </summary>
-    public class GZipStreamWrapper : StreamWrapper
+    public class GZipHooks : FileLifecycleHooks
     {
         readonly int _bufferSize;
 
-        public GZipStreamWrapper(int bufferSize = 1024 * 32)
+        public GZipHooks(int bufferSize = 1024 * 32)
         {
             _bufferSize = bufferSize;
         }

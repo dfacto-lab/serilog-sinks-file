@@ -146,14 +146,14 @@ namespace Serilog.Sinks.File.Tests
         [Fact]
         public void WhenStreamWrapperIsSpecifiedOutputStreamIsWrapped()
         {
-            var gzipWrapper = new GZipStreamWrapper();
+            var gzipWrapper = new GZipHooks();
 
             using (var tmp = TempFolder.ForCaller())
             {
                 var nonexistent = tmp.AllocateFilename("txt");
                 var evt = Some.LogEvent("Hello, world!");
 
-                using (var sink = new FileSink(nonexistent, new JsonFormatter(), null, wrapper: gzipWrapper))
+                using (var sink = new FileSink(nonexistent, new JsonFormatter(), null, hooks: gzipWrapper))
                 {
                     sink.Emit(evt);
                     sink.Emit(evt);
