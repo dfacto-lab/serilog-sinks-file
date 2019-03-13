@@ -117,8 +117,11 @@ namespace Serilog.Sinks.File
             var existingFiles = Enumerable.Empty<string>();
             try
             {
-                existingFiles = Directory.GetFiles(_roller.LogFileDirectory, _roller.DirectorySearchPattern)
+                if (Directory.Exists(_roller.LogFileDirectory))
+                {
+                    existingFiles = Directory.GetFiles(_roller.LogFileDirectory, _roller.DirectorySearchPattern)
                                          .Select(Path.GetFileName);
+                }
             }
             catch (DirectoryNotFoundException) { }
 
