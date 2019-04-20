@@ -317,7 +317,7 @@ namespace Serilog
                     {
                         if (hooks != null)
                         {
-                            SelfLog.WriteLine("Unable to use output stream wrapper - these are not supported for shared log files");
+                            SelfLog.WriteLine($"Unable to use {hooks.GetType().Name} FileLifecycleHooks output stream wrapper - these are not supported for shared log files");
                         }
 
                         sink = new SharedFileSink(path, formatter, fileSizeLimitBytes);
