@@ -1,4 +1,4 @@
-﻿// Copyright 2013-2016 Serilog Contributors
+// Copyright 2013-2016 Serilog Contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -73,6 +73,11 @@ namespace Serilog.Sinks.File
             if (hooks != null)
             {
                 outputStream = hooks.Wrap(outputStream);
+
+                if (outputStream == null)
+                {
+                    throw new InvalidOperationException($"{hooks.GetType().Name}.Wrap returned null when wrapping the output stream");
+                }
             }
 
             _output = new StreamWriter(outputStream, encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
