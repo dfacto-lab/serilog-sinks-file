@@ -301,6 +301,7 @@ namespace Serilog
             if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0) throw new ArgumentException("Negative value provided; file size limit must be non-negative.", nameof(fileSizeLimitBytes));
             if (retainedFileCountLimit.HasValue && retainedFileCountLimit < 1) throw new ArgumentException("At least one file must be retained.", nameof(retainedFileCountLimit));
             if (shared && buffered) throw new ArgumentException("Buffered writes are not available when file sharing is enabled.", nameof(buffered));
+            if (shared && hooks != null) throw new ArgumentException("Unable to use {hooks.GetType().Name} FileLifecycleHooks output stream wrapper - these are not supported for shared log files", nameof(hooks));
 
             ILogEventSink sink;
 
@@ -315,11 +316,6 @@ namespace Serilog
 #pragma warning disable 618
                     if (shared)
                     {
-                        if (hooks != null)
-                        {
-                            SelfLog.WriteLine($"Unable to use {hooks.GetType().Name} FileLifecycleHooks output stream wrapper - these are not supported for shared log files");
-                        }
-
                         sink = new SharedFileSink(path, formatter, fileSizeLimitBytes);
                     }
                     else
