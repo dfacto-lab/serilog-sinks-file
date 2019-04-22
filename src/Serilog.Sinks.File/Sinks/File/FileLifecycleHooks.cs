@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using System.IO;
+using System.Text;
 
 namespace Serilog.Sinks.File
 {
@@ -31,7 +32,8 @@ namespace Serilog.Sinks.File
         /// dispose the stream initially passed in unless it is itself returned.
         /// </remarks>
         /// <param name="underlyingStream">The underlying <see cref="Stream"/> opened on the log file.</param>
+        /// <param name="encoding">The encoding to use when reading/writing to the stream.</param>
         /// <returns>The <see cref="Stream"/> Serilog should use when writing events to the log file.</returns>
-        public virtual Stream OnOpened(Stream underlyingStream) => underlyingStream;
+        public virtual Stream OnOpened(Stream underlyingStream, Encoding encoding) => underlyingStream;
     }
 }

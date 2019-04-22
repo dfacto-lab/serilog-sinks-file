@@ -78,13 +78,16 @@ namespace Serilog.Sinks.File
                 outputStream = _countingStreamWrapper = new WriteCountingStream(_underlyingStream);
             }
 
+            // Parameter reassignment.
+            encoding = encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+
             if (hooks != null)
             {
-                outputStream = hooks.OnOpened(outputStream) ??
-                               throw new InvalidOperationException($"The file lifecycle hooks `{nameof(FileLifecycleHooks.OnOpened)}()` returned `null` when called with the output stream.");
+                outputStream = hooks.OnOpened(outputStream, encoding) ??
+                               throw new InvalidOperationException($"The file lifecycle hook `{nameof(FileLifecycleHooks.OnOpened)}(...)` returned `null`.");
             }
 
-            _output = new StreamWriter(outputStream, encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            _output = new StreamWriter(outputStream, encoding);
         }
 
         bool IFileSink.EmitOrOverflow(LogEvent logEvent)

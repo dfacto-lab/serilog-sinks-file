@@ -1,5 +1,6 @@
 using System.IO;
 using System.IO.Compression;
+using System.Text;
 
 namespace Serilog.Sinks.File.Tests.Support
 {
@@ -16,7 +17,7 @@ namespace Serilog.Sinks.File.Tests.Support
             _bufferSize = bufferSize;
         }
 
-        public override Stream OnOpened(Stream underlyingStream)
+        public override Stream OnOpened(Stream underlyingStream, Encoding _)
         {
             var compressStream = new GZipStream(underlyingStream, CompressionMode.Compress);
             return new BufferedStream(compressStream, _bufferSize);
