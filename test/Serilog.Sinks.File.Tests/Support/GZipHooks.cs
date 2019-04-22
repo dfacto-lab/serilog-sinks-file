@@ -16,9 +16,9 @@ namespace Serilog.Sinks.File.Tests.Support
             _bufferSize = bufferSize;
         }
 
-        public override Stream Wrap(Stream sourceStream)
+        public override Stream OnOpened(Stream underlyingStream)
         {
-            var compressStream = new GZipStream(sourceStream, CompressionMode.Compress);
+            var compressStream = new GZipStream(underlyingStream, CompressionMode.Compress);
             return new BufferedStream(compressStream, _bufferSize);
         }
     }

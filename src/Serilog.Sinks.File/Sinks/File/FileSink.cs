@@ -23,7 +23,6 @@ namespace Serilog.Sinks.File
     /// <summary>
     /// Write log events to a disk file.
     /// </summary>
-    [Obsolete("This type will be removed from the public API in a future version; use `WriteTo.File()` instead.")]
     public sealed class FileSink : IFileSink, IDisposable
     {
         readonly TextWriter _output;
@@ -43,18 +42,27 @@ namespace Serilog.Sinks.File
         /// <param name="encoding">Character encoding used to write the text file. The default is UTF-8 without BOM.</param>
         /// <param name="buffered">Indicates if flushing to the output file can be buffered or not. The default
         /// is false.</param>
-        /// <param name="hooks">Optionally enables hooking into log file lifecycle events.</param>
         /// <returns>Configuration object allowing method chaining.</returns>
-        /// <remarks>The file will be written using the UTF-8 character set.</remarks>
+        /// <remarks>This constructor preserves compatibility with early versions of the public API. New code should not depend on this type.</remarks>
         /// <exception cref="IOException"></exception>
-        public FileSink(string path, ITextFormatter textFormatter, long? fileSizeLimitBytes, Encoding encoding = null, bool buffered = false,
-            FileLifecycleHooks hooks = null)
+        [Obsolete("This type and constructor will be removed from the public API in a future version; use `WriteTo.File()` instead.")]
+        public FileSink(string path, ITextFormatter textFormatter, long? fileSizeLimitBytes, Encoding encoding = null, bool buffered = false)
+            : this(path, textFormatter, fileSizeLimitBytes, encoding, buffered, null)
+        {
+        }
+
+        // This overload should be used internally; the overload above maintains compatibility with the earlier public API.
+        internal FileSink(
+            string path,
+            ITextFormatter textFormatter,
+            long? fileSizeLimitBytes,
+            Encoding encoding,
+            bool buffered,
+            FileLifecycleHooks hooks)
         {
             if (path == null) throw new ArgumentNullException(nameof(path));
-            if (textFormatter == null) throw new ArgumentNullException(nameof(textFormatter));
             if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0) throw new ArgumentException("Negative value provided; file size limit must be non-negative.");
-
-            _textFormatter = textFormatter;
+            _textFormatter = textFormatter ?? throw new ArgumentNullException(nameof(textFormatter));
             _fileSizeLimitBytes = fileSizeLimitBytes;
             _buffered = buffered;
 
@@ -72,12 +80,8 @@ namespace Serilog.Sinks.File
 
             if (hooks != null)
             {
-                outputStream = hooks.Wrap(outputStream);
-
-                if (outputStream == null)
-                {
-                    throw new InvalidOperationException($"{hooks.GetType().Name}.Wrap returned null when wrapping the output stream");
-                }
+                outputStream = hooks.OnOpened(outputStream) ??
+                               throw new InvalidOperationException($"The file lifecycle hooks `{nameof(FileLifecycleHooks.OnOpened)}()` returned `null` when called with the output stream.");
             }
 
             _output = new StreamWriter(outputStream, encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));

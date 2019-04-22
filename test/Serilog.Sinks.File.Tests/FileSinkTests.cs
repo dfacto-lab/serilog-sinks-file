@@ -153,7 +153,7 @@ namespace Serilog.Sinks.File.Tests
                 var nonexistent = tmp.AllocateFilename("txt");
                 var evt = Some.LogEvent("Hello, world!");
 
-                using (var sink = new FileSink(nonexistent, new JsonFormatter(), null, hooks: gzipWrapper))
+                using (var sink = new FileSink(nonexistent, new JsonFormatter(), null, null, false, gzipWrapper))
                 {
                     sink.Emit(evt);
                     sink.Emit(evt);
@@ -161,7 +161,7 @@ namespace Serilog.Sinks.File.Tests
 
                 // Ensure the data was written through the wrapping GZipStream, by decompressing and comparing against
                 // what we wrote
-                var lines = new List<string>();
+                List<string> lines;
                 using (var textStream = new MemoryStream())
                 {
                     using (var fs = System.IO.File.OpenRead(nonexistent))
@@ -185,7 +185,7 @@ namespace Serilog.Sinks.File.Tests
             {
                 var path = tmp.AllocateFilename("txt");
                 var evt = Some.LogEvent("Irrelevant as it will be replaced by the formatter");
-                var actualEventOutput = "x";
+                const string actualEventOutput = "x";
                 var formatter = new FixedOutputFormatter(actualEventOutput);
                 var eventOuputLength = encoding.GetByteCount(actualEventOutput);
 
