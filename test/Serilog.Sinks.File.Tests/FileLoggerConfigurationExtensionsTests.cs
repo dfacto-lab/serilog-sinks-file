@@ -80,6 +80,14 @@ namespace Serilog.Sinks.File.Tests
         }
 
         [Fact]
+        public void BufferingIsNotAvailableWhenSharingEnabled()
+        {
+            Assert.Throws<ArgumentException>(() =>
+                new LoggerConfiguration()
+                    .WriteTo.File("logs", buffered: true, shared: true));
+        }
+
+        [Fact]
         public void HooksAreNotAvailableWhenSharingEnabled()
         {
             Assert.Throws<ArgumentException>(() =>
