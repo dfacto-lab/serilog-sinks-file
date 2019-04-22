@@ -30,11 +30,13 @@ log20180702.txt
 
 ### Limits
 
-To avoid bringing down apps with runaway disk usage the file sink **limits file size to 1GB by default**. The limit can be increased or removed using the `fileSizeLimitBytes` parameter.
+To avoid bringing down apps with runaway disk usage the file sink **limits file size to 1GB by default**. Once the limit is reached, no further events will be written until the next roll point (see also: [Rolling policies](#rolling-policies) below).
+
+The limit can be changed or removed using the `fileSizeLimitBytes` parameter.
 
 ```csharp
     .WriteTo.File("log.txt", fileSizeLimitBytes: null)
-```
+``` 
 
 For the same reason, only **the most recent 31 files** are retained by default (i.e. one long month). To change or remove this limit, pass the `retainedFileCountLimit` parameter.
 
