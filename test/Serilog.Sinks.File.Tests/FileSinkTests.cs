@@ -144,16 +144,16 @@ namespace Serilog.Sinks.File.Tests
         }
 
         [Fact]
-        public void WhenStreamWrapperIsSpecifiedOutputStreamIsWrapped()
+        public void OnOpenedLifecycleHookCanWrapUnderlyingStream()
         {
             var gzipWrapper = new GZipHooks();
 
             using (var tmp = TempFolder.ForCaller())
             {
-                var nonexistent = tmp.AllocateFilename("txt");
+                var path = tmp.AllocateFilename("txt");
                 var evt = Some.LogEvent("Hello, world!");
 
-                using (var sink = new FileSink(nonexistent, new JsonFormatter(), null, null, false, gzipWrapper))
+                using (var sink = new FileSink(path, new JsonFormatter(), null, null, false, gzipWrapper))
                 {
                     sink.Emit(evt);
                     sink.Emit(evt);
@@ -164,7 +164,7 @@ namespace Serilog.Sinks.File.Tests
                 List<string> lines;
                 using (var textStream = new MemoryStream())
                 {
-                    using (var fs = System.IO.File.OpenRead(nonexistent))
+                    using (var fs = System.IO.File.OpenRead(path))
                     using (var decompressStream = new GZipStream(fs, CompressionMode.Decompress))
                     {
                         decompressStream.CopyTo(textStream);
@@ -176,6 +176,33 @@ namespace Serilog.Sinks.File.Tests
 
                 Assert.Equal(2, lines.Count);
                 Assert.Contains("Hello, world!", lines[0]);
+            }
+        }
+
+        [Fact]
+        public static void OnOpenedLifecycleHookCanWriteFileHeader()
+        {
+            using (var tmp = TempFolder.ForCaller())
+            {
+                var headerWriter = new FileHeaderWriter("This is the file header");
+
+                var path = tmp.AllocateFilename("txt");
+                using (new FileSink(path, new JsonFormatter(), null, new UTF8Encoding(false), false, headerWriter))
+                {
+                    // Open and write header
+                }
+
+                using (var sink = new FileSink(path, new JsonFormatter(), null, new UTF8Encoding(false), false, headerWriter))
+                {
+                    // Length check should prevent duplicate header here
+                    sink.Emit(Some.LogEvent());
+                }
+
+                var lines = System.IO.File.ReadAllLines(path);
+
+                Assert.Equal(2, lines.Length);
+                Assert.Equal(headerWriter.Header, lines[0]);
+                Assert.Equal('{', lines[1][0]);
             }
         }
 
