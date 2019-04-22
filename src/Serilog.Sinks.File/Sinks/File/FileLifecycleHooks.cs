@@ -14,7 +14,7 @@
 
 using System.IO;
 
-namespace Serilog
+namespace Serilog.Sinks.File
 {
     /// <summary>
     /// Enables hooking into log file lifecycle events.

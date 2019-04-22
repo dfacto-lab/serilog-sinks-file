@@ -337,7 +337,9 @@ namespace Serilog
 
             if (flushToDiskInterval.HasValue)
             {
+#pragma warning disable 618
                 sink = new PeriodicFlushToDiskSink(sink, flushToDiskInterval.Value);
+#pragma warning restore 618
             }
 
             return addSink(sink, restrictedToMinimumLevel, levelSwitch);

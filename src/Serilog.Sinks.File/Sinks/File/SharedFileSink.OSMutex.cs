@@ -1,4 +1,4 @@
-﻿// Copyright 2013-2016 Serilog Contributors
+﻿// Copyright 2013-2019 Serilog Contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 using System;
 using System.IO;
 using System.Text;
-using Serilog.Core;
 using Serilog.Events;
 using Serilog.Formatting;
 using System.Threading;
@@ -28,6 +27,7 @@ namespace Serilog.Sinks.File
     /// <summary>
     /// Write log events to a disk file.
     /// </summary>
+    [Obsolete("This type will be removed from the public API in a future version; use `WriteTo.File(shared: true)` instead.")]
     public sealed class SharedFileSink : IFileSink, IDisposable
     {
         readonly TextWriter _output;
@@ -53,11 +53,9 @@ namespace Serilog.Sinks.File
         public SharedFileSink(string path, ITextFormatter textFormatter, long? fileSizeLimitBytes, Encoding encoding = null)
         {
             if (path == null) throw new ArgumentNullException(nameof(path));
-            if (textFormatter == null) throw new ArgumentNullException(nameof(textFormatter));
             if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0)
                 throw new ArgumentException("Negative value provided; file size limit must be non-negative");
-
-            _textFormatter = textFormatter;
+            _textFormatter = textFormatter ?? throw new ArgumentNullException(nameof(textFormatter));
             _fileSizeLimitBytes = fileSizeLimitBytes;
 
             var directory = Path.GetDirectoryName(path);
