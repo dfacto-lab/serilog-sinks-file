@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma warning disable 618
-
 using System;
 using System.IO;
 using System.Linq;
@@ -35,6 +33,7 @@ namespace Serilog.Sinks.File
         readonly bool _buffered;
         readonly bool _shared;
         readonly bool _rollOnFileSizeLimit;
+        readonly FileLifecycleHooks _hooks;
 
         readonly object _syncRoot = new object();
         bool _isDisposed;
@@ -50,11 +49,12 @@ namespace Serilog.Sinks.File
                               bool buffered,
                               bool shared,
                               RollingInterval rollingInterval,
-                              bool rollOnFileSizeLimit)
+                              bool rollOnFileSizeLimit,
+                              FileLifecycleHooks hooks)
         {
             if (path == null) throw new ArgumentNullException(nameof(path));
-            if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0) throw new ArgumentException("Negative value provided; file size limit must be non-negative");
-            if (retainedFileCountLimit.HasValue && retainedFileCountLimit < 1) throw new ArgumentException("Zero or negative value provided; retained file count limit must be at least 1");
+            if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0) throw new ArgumentException("Negative value provided; file size limit must be non-negative.");
+            if (retainedFileCountLimit.HasValue && retainedFileCountLimit < 1) throw new ArgumentException("Zero or negative value provided; retained file count limit must be at least 1.");
 
             _roller = new PathRoller(path, rollingInterval);
             _textFormatter = textFormatter;
@@ -64,6 +64,7 @@ namespace Serilog.Sinks.File
             _buffered = buffered;
             _shared = shared;
             _rollOnFileSizeLimit = rollOnFileSizeLimit;
+            _hooks = hooks;
         }
 
         public void Emit(LogEvent logEvent)
@@ -146,8 +147,11 @@ namespace Serilog.Sinks.File
                 try
                 {
                     _currentFile = _shared ?
+#pragma warning disable 618
                         (IFileSink)new SharedFileSink(path, _textFormatter, _fileSizeLimitBytes, _encoding) :
-                        new FileSink(path, _textFormatter, _fileSizeLimitBytes, _encoding, _buffered);
+#pragma warning restore 618
+                        new FileSink(path, _textFormatter, _fileSizeLimitBytes, _encoding, _buffered, _hooks);
+
                     _currentFileSequence = sequence;
                 }
                 catch (IOException ex)

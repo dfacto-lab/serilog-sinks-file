@@ -1,11 +1,18 @@
 version: '{build}'
 skip_tags: true
-image: Visual Studio 2017
+image:
+  - Visual Studio 2017
+  - Ubuntu
 configuration: Release
-install:
-  - ps: mkdir -Force ".\build\" | Out-Null
 build_script:
 - ps: ./Build.ps1
+for:
+-
+  matrix:
+    only:
+      - image: Ubuntu
+  build_script:
+    - sh build.sh
 test: off
 artifacts:
 - path: artifacts/Serilog.*.nupkg

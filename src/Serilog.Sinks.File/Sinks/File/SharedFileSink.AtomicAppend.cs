@@ -1,4 +1,4 @@
-﻿// Copyright 2013-2016 Serilog Contributors
+﻿// Copyright 2013-2019 Serilog Contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ using System;
 using System.IO;
 using System.Security.AccessControl;
 using System.Text;
-using Serilog.Core;
 using Serilog.Events;
 using Serilog.Formatting;
 
@@ -51,17 +50,14 @@ namespace Serilog.Sinks.File
         /// will be written in full even if it exceeds the limit.</param>
         /// <param name="encoding">Character encoding used to write the text file. The default is UTF-8 without BOM.</param>
         /// <returns>Configuration object allowing method chaining.</returns>
-        /// <remarks>The file will be written using the UTF-8 character set.</remarks>
         /// <exception cref="IOException"></exception>
         public SharedFileSink(string path, ITextFormatter textFormatter, long? fileSizeLimitBytes, Encoding encoding = null)
         {
-            if (path == null) throw new ArgumentNullException(nameof(path));
-            if (textFormatter == null) throw new ArgumentNullException(nameof(textFormatter));
             if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0)
                 throw new ArgumentException("Negative value provided; file size limit must be non-negative");
 
-            _path = path;
-            _textFormatter = textFormatter;
+            _path = path ?? throw new ArgumentNullException(nameof(path));
+            _textFormatter = textFormatter ?? throw new ArgumentNullException(nameof(textFormatter));
             _fileSizeLimitBytes = fileSizeLimitBytes;
 
             var directory = Path.GetDirectoryName(path);

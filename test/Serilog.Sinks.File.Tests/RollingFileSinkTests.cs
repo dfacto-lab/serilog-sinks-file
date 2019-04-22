@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using Xunit;
@@ -93,6 +94,64 @@ namespace Serilog.Sinks.File.Tests
                 Assert.True(files[0].EndsWith(fileName), files[0]);
                 Assert.True(files[1].EndsWith("_001.txt"), files[1]);
                 Assert.True(files[2].EndsWith("_002.txt"), files[2]);
+            }
+        }
+
+        [Fact]
+        public void WhenStreamWrapperSpecifiedIsUsedForRolledFiles()
+        {
+            var gzipWrapper = new GZipHooks();
+            var fileName = Some.String() + ".txt";
+
+            using (var temp = new TempFolder())
+            {
+                string[] files;
+                var logEvents = new[]
+                {
+                    Some.InformationEvent(),
+                    Some.InformationEvent(),
+                    Some.InformationEvent()
+                };
+
+                using (var log = new LoggerConfiguration()
+                    .WriteTo.File(Path.Combine(temp.Path, fileName), rollOnFileSizeLimit: true, fileSizeLimitBytes: 1, hooks: gzipWrapper)
+                    .CreateLogger())
+                {
+
+                    foreach (var logEvent in logEvents)
+                    {
+                        log.Write(logEvent);
+                    }
+
+                    files = Directory.GetFiles(temp.Path)
+                        .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                        .ToArray();
+
+                    Assert.Equal(3, files.Length);
+                    Assert.True(files[0].EndsWith(fileName), files[0]);
+                    Assert.True(files[1].EndsWith("_001.txt"), files[1]);
+                    Assert.True(files[2].EndsWith("_002.txt"), files[2]);
+                }
+
+                // Ensure the data was written through the wrapping GZipStream, by decompressing and comparing against
+                // what we wrote
+                for (var i = 0; i < files.Length; i++)
+                {
+                    using (var textStream = new MemoryStream())
+                    {
+                        using (var fs = System.IO.File.OpenRead(files[i]))
+                        using (var decompressStream = new GZipStream(fs, CompressionMode.Decompress))
+                        {
+                            decompressStream.CopyTo(textStream);
+                        }
+
+                        textStream.Position = 0;
+                        var lines = textStream.ReadAllLines();
+
+                        Assert.Equal(1, lines.Count);
+                        Assert.True(lines[0].EndsWith(logEvents[i].MessageTemplate.Text));
+                    }
+                }
             }
         }
 
