@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using Serilog.Sinks.File.Tests.Support;
 using Serilog.Tests.Support;
@@ -80,11 +80,11 @@ namespace Serilog.Sinks.File.Tests
         }
 
         [Fact]
-        public void BufferingIsNotAvailableWhenSharingEnabled()
+        public void HooksAreNotAvailableWhenSharingEnabled()
         {
             Assert.Throws<ArgumentException>(() =>
                 new LoggerConfiguration()
-                    .WriteTo.File("logs", buffered: true, shared: true));
+                    .WriteTo.File("logs", shared: true, hooks: new GZipHooks()));
         }
     }
 }
