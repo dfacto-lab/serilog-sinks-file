@@ -199,7 +199,6 @@ namespace Serilog
         /// <param name="encoding">Character encoding used to write the text file. The default is UTF-8 without BOM.</param>
         /// <param name="hooks">Optionally enables hooking into log file lifecycle events.</param>
         /// <returns>Configuration object allowing method chaining.</returns>
-        /// <remarks>The file will be written using the UTF-8 character set.</remarks>
         public static LoggerConfiguration File(
             this LoggerSinkConfiguration sinkConfiguration,
             ITextFormatter formatter,
@@ -235,20 +234,54 @@ namespace Serilog
         /// the default is "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}".</param>
         /// <returns>Configuration object allowing method chaining.</returns>
         /// <remarks>The file will be written using the UTF-8 character set.</remarks>
+        [Obsolete("New code should not be compiled against this obsolete overload"), EditorBrowsable(EditorBrowsableState.Never)]
         public static LoggerConfiguration File(
             this LoggerAuditSinkConfiguration sinkConfiguration,
             string path,
-            LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
-            string outputTemplate = DefaultOutputTemplate,
-            IFormatProvider formatProvider = null,
-            LoggingLevelSwitch levelSwitch = null)
+            LogEventLevel restrictedToMinimumLevel,
+            string outputTemplate,
+            IFormatProvider formatProvider,
+            LoggingLevelSwitch levelSwitch)
         {
             if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));
             if (path == null) throw new ArgumentNullException(nameof(path));
             if (outputTemplate == null) throw new ArgumentNullException(nameof(outputTemplate));
 
             var formatter = new MessageTemplateTextFormatter(outputTemplate, formatProvider);
-            return File(sinkConfiguration, formatter, path, restrictedToMinimumLevel, levelSwitch);
+            return File(sinkConfiguration, formatter, path, restrictedToMinimumLevel, levelSwitch, null);
+        }
+
+        /// <summary>
+        /// Write log events to the specified file.
+        /// </summary>
+        /// <param name="sinkConfiguration">Logger sink configuration.</param>
+        /// <param name="path">Path to the file.</param>
+        /// <param name="restrictedToMinimumLevel">The minimum level for
+        /// events passed through the sink. Ignored when <paramref name="levelSwitch"/> is specified.</param>
+        /// <param name="levelSwitch">A switch allowing the pass-through minimum level
+        /// to be changed at runtime.</param>
+        /// <param name="formatProvider">Supplies culture-specific formatting information, or null.</param>
+        /// <param name="outputTemplate">A message template describing the format used to write to the sink.
+        /// the default is "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}".</param>
+        /// <param name="encoding">Character encoding used to write the text file. The default is UTF-8 without BOM.</param>
+        /// <param name="hooks">Optionally enables hooking into log file lifecycle events.</param>
+        /// <returns>Configuration object allowing method chaining.</returns>
+        public static LoggerConfiguration File(
+            this LoggerAuditSinkConfiguration sinkConfiguration,
+            string path,
+            LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
+            string outputTemplate = DefaultOutputTemplate,
+            IFormatProvider formatProvider = null,
+            LoggingLevelSwitch levelSwitch = null,
+            Encoding encoding = null,
+            FileLifecycleHooks hooks = null)
+        {
+            if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));
+            if (path == null) throw new ArgumentNullException(nameof(path));
+            if (outputTemplate == null) throw new ArgumentNullException(nameof(outputTemplate));
+
+            var formatter = new MessageTemplateTextFormatter(outputTemplate, formatProvider);
+            return File(sinkConfiguration, formatter, path, restrictedToMinimumLevel, levelSwitch, encoding, hooks);
         }
 
         /// <summary>
@@ -267,15 +300,53 @@ namespace Serilog
         /// to be changed at runtime.</param>
         /// <returns>Configuration object allowing method chaining.</returns>
         /// <remarks>The file will be written using the UTF-8 character set.</remarks>
+        [Obsolete("New code should not be compiled against this obsolete overload"), EditorBrowsable(EditorBrowsableState.Never)]
+        public static LoggerConfiguration File(
+            this LoggerAuditSinkConfiguration sinkConfiguration,
+            ITextFormatter formatter,
+            string path,
+            LogEventLevel restrictedToMinimumLevel,
+            LoggingLevelSwitch levelSwitch)
+        {
+            if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));
+            if (formatter == null) throw new ArgumentNullException(nameof(formatter));
+            if (path == null) throw new ArgumentNullException(nameof(path));
+
+            return File(sinkConfiguration, formatter, path, restrictedToMinimumLevel, levelSwitch, null);
+        }
+
+        /// <summary>
+        /// Write log events to the specified file.
+        /// </summary>
+        /// <param name="sinkConfiguration">Logger sink configuration.</param>
+        /// <param name="formatter">A formatter, such as <see cref="JsonFormatter"/>, to convert the log events into
+        /// text for the file. If control of regular text formatting is required, use the other
+        /// overload of <see cref="File(LoggerAuditSinkConfiguration, string, LogEventLevel, string, IFormatProvider, LoggingLevelSwitch, Encoding, FileLifecycleHooks)"/>
+        /// and specify the outputTemplate parameter instead.
+        /// </param>
+        /// <param name="path">Path to the file.</param>
+        /// <param name="restrictedToMinimumLevel">The minimum level for
+        /// events passed through the sink. Ignored when <paramref name="levelSwitch"/> is specified.</param>
+        /// <param name="levelSwitch">A switch allowing the pass-through minimum level
+        /// to be changed at runtime.</param>
+        /// <param name="encoding">Character encoding used to write the text file. The default is UTF-8 without BOM.</param>
+        /// <param name="hooks">Optionally enables hooking into log file lifecycle events.</param>
+        /// <returns>Configuration object allowing method chaining.</returns>
         public static LoggerConfiguration File(
             this LoggerAuditSinkConfiguration sinkConfiguration,
             ITextFormatter formatter,
             string path,
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
-            LoggingLevelSwitch levelSwitch = null)
+            LoggingLevelSwitch levelSwitch = null,
+            Encoding encoding = null,
+            FileLifecycleHooks hooks = null)
         {
+            if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));
+            if (formatter == null) throw new ArgumentNullException(nameof(formatter));
+            if (path == null) throw new ArgumentNullException(nameof(path));
+
             return ConfigureFile(sinkConfiguration.Sink, formatter, path, restrictedToMinimumLevel, null, levelSwitch, false, true,
-                false, null, null, RollingInterval.Infinite, false, null, null);
+                false, null, encoding, RollingInterval.Infinite, false, null, hooks);
         }
 
         static LoggerConfiguration ConfigureFile(
