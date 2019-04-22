@@ -34,6 +34,6 @@ namespace Serilog.Sinks.File
         /// <param name="underlyingStream">The underlying <see cref="Stream"/> opened on the log file.</param>
         /// <param name="encoding">The encoding to use when reading/writing to the stream.</param>
         /// <returns>The <see cref="Stream"/> Serilog should use when writing events to the log file.</returns>
-        public virtual Stream OnOpened(Stream underlyingStream, Encoding encoding) => underlyingStream;
+        public virtual Stream OnFileOpened(Stream underlyingStream, Encoding encoding) => underlyingStream;
     }
 }

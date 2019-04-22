@@ -12,7 +12,7 @@ namespace Serilog.Sinks.File.Tests.Support
             Header = header;
         }
 
-        public override Stream OnOpened(Stream underlyingStream, Encoding encoding)
+        public override Stream OnFileOpened(Stream underlyingStream, Encoding encoding)
         {
             if (underlyingStream.Length == 0)
             {
@@ -22,7 +22,7 @@ namespace Serilog.Sinks.File.Tests.Support
                 underlyingStream.Flush();
             }
 
-            return base.OnOpened(underlyingStream, encoding);
+            return base.OnFileOpened(underlyingStream, encoding);
         }
     }
 }
