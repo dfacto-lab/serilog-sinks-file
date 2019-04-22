@@ -4,6 +4,7 @@ using Serilog.Sinks.File.Tests.Support;
 using Serilog.Tests.Support;
 using Xunit;
 using System.IO;
+using System.Text;
 
 namespace Serilog.Sinks.File.Tests
 {
@@ -93,6 +94,27 @@ namespace Serilog.Sinks.File.Tests
             Assert.Throws<ArgumentException>(() =>
                 new LoggerConfiguration()
                     .WriteTo.File("logs", shared: true, hooks: new GZipHooks()));
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void SpecifiedEncodingIsPropagated(bool shared)
+        {
+            using (var tmp = TempFolder.ForCaller())
+            {
+                var filename = tmp.AllocateFilename("txt");
+
+                using (var log = new LoggerConfiguration()
+                    .WriteTo.File(filename, outputTemplate: "{Message}", encoding: Encoding.Unicode, shared: shared)
+                    .CreateLogger())
+                {
+                    log.Information("ten chars.");
+                }
+
+                // Don't forget the two-byte BOM :-)
+                Assert.Equal(22, System.IO.File.ReadAllBytes(filename).Length);
+            }
         }
     }
 }
