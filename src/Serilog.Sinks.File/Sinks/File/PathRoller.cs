@@ -73,6 +73,11 @@ namespace Serilog.Sinks.File
             path = Path.Combine(_directory, _filenamePrefix + tok + _filenameSuffix);
         }
 
+        public void GetLogFilePath(out string path)
+        {
+            path = Path.Combine(_directory, _filenamePrefix + _filenameSuffix);
+        }
+
         public IEnumerable<RollingLogFile> SelectMatches(IEnumerable<string> filenames)
         {
             foreach (var filename in filenames)

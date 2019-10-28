@@ -190,6 +190,67 @@ namespace Serilog.Sinks.File.Tests
             Assert.Equal("2.0.0.0", assembly.GetName().Version.ToString(4));
         }
 
+        [Fact]
+        public void LogFilenameShouldNotChangeAfterRollOnFileSize()
+        {
+            var fileName = Some.String() + ".txt";
+            using (var temp = new TempFolder())
+            using (var log = new LoggerConfiguration()
+                .WriteTo.File(Path.Combine(temp.Path, fileName), rollOnFileSizeLimit: true, fileSizeLimitBytes: 1, preserveLogFilename: true)
+                .CreateLogger())
+            {
+                LogEvent e1 = Some.InformationEvent(),
+                    e2 = Some.InformationEvent(e1.Timestamp),
+                    e3 = Some.InformationEvent(e1.Timestamp);
+
+                log.Write(e1); log.Write(e2); log.Write(e3);
+
+                var files = Directory.GetFiles(temp.Path)
+                    .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+                Assert.Equal(3, files.Length);
+                Assert.True(files[0].EndsWith(fileName), files[0]);
+                Assert.True(files[1].EndsWith("_001.txt"), files[1]);
+                Assert.True(files[2].EndsWith("_002.txt"), files[2]);
+            }
+        }
+
+        //  var e1 = Some.InformationEvent();
+        //var e2 = Some.InformationEvent(e1.Timestamp.AddDays(1));
+        [Fact]
+        static void LogFilenameShouldNotChangeAfterRollOnDate()
+        {
+
+            var fileName = "mylogfile.txt";
+            using (var temp = new TempFolder())
+            using (var log = new LoggerConfiguration()
+                .WriteTo.File(Path.Combine(temp.Path, fileName),  retainedFileCountLimit: null, preserveLogFilename: true, rollingInterval: RollingInterval.Day)
+                .CreateLogger())
+            {
+                LogEvent e1 = Some.InformationEvent(),
+                    e2 = Some.InformationEvent(e1.Timestamp.AddDays(1)),
+                    e3 = Some.InformationEvent(e2.Timestamp.AddDays(5));
+                Clock.SetTestDateTimeNow(e1.Timestamp.DateTime);
+                log.Write(e1);
+                Clock.SetTestDateTimeNow(e2.Timestamp.DateTime);
+                log.Write(e2);
+                Clock.SetTestDateTimeNow(e3.Timestamp.DateTime);
+                log.Write(e3);
+
+                var files = Directory.GetFiles(temp.Path)
+                    .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+
+                Assert.Equal(3, files.Length);
+                Console.Out.WriteLine(files[0]);
+                Console.Out.WriteLine(files[1]);
+                Console.Out.WriteLine(files[2]);
+                Assert.True(files[0].EndsWith(fileName), files[0]);
+                Assert.True(files[1].EndsWith( e2.Timestamp.ToString("yyyyMMdd")+".txt"), files[1]);
+                Assert.True(files[2].EndsWith(e3.Timestamp.ToString("yyyyMMdd")+".txt"), files[2]);
+            }
+        }
+
         static void TestRollingEventSequence(params LogEvent[] events)
         {
             TestRollingEventSequence(

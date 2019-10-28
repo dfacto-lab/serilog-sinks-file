@@ -34,6 +34,7 @@ namespace Serilog.Sinks.File
         readonly bool _shared;
         readonly bool _rollOnFileSizeLimit;
         readonly FileLifecycleHooks _hooks;
+        readonly bool _keepFilename;
 
         readonly object _syncRoot = new object();
         bool _isDisposed;
@@ -50,7 +51,8 @@ namespace Serilog.Sinks.File
                               bool shared,
                               RollingInterval rollingInterval,
                               bool rollOnFileSizeLimit,
-                              FileLifecycleHooks hooks)
+                              FileLifecycleHooks hooks,
+                              bool keepFilename = false)
         {
             if (path == null) throw new ArgumentNullException(nameof(path));
             if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0) throw new ArgumentException("Negative value provided; file size limit must be non-negative.");
@@ -65,6 +67,7 @@ namespace Serilog.Sinks.File
             _shared = shared;
             _rollOnFileSizeLimit = rollOnFileSizeLimit;
             _hooks = hooks;
+            _keepFilename = keepFilename;
         }
 
         public void Emit(LogEvent logEvent)
@@ -138,37 +141,92 @@ namespace Serilog.Sinks.File
                 if (sequence == null || sequence.Value < minSequence.Value)
                     sequence = minSequence;
             }
-
-            const int maxAttempts = 3;
-            for (var attempt = 0; attempt < maxAttempts; attempt++)
+            if (_keepFilename)
             {
-                _roller.GetLogFilePath(now, sequence, out var path);
+                const int maxAttempts = 3;
+                // if current file exists we rename it with rolling date
+                _roller.GetLogFilePath(out var currentPath);
+                if (System.IO.File.Exists(currentPath) && new FileInfo(currentPath).Length > 0)
+                {
+                    for (var attempt = 0; attempt < maxAttempts; attempt++)
+                    {
+                        _roller.GetLogFilePath(now, sequence, out var path);
+                        try
+                        {
+                           System.IO.File.Move(currentPath, path);
+                           _currentFileSequence = sequence;
 
+                        }
+                        catch (IOException ex)
+                        {
+                            if (IOErrors.IsLockedFile(ex))
+                            {
+                                SelfLog.WriteLine("File target {0} was locked, attempting to open next in sequence (attempt {1})", path, attempt + 1);
+                                sequence = (sequence ?? 0) + 1;
+                                continue;
+                            }
+
+                            throw;
+                        }
+                        ApplyRetentionPolicy(path);
+                        break;
+                    }
+                }
+                //now we open the current file
                 try
                 {
                     _currentFile = _shared ?
 #pragma warning disable 618
-                        (IFileSink)new SharedFileSink(path, _textFormatter, _fileSizeLimitBytes, _encoding) :
+                        (IFileSink)new SharedFileSink(currentPath, _textFormatter, _fileSizeLimitBytes, _encoding) :
 #pragma warning restore 618
-                        new FileSink(path, _textFormatter, _fileSizeLimitBytes, _encoding, _buffered, _hooks);
+                        new FileSink(currentPath, _textFormatter, _fileSizeLimitBytes, _encoding, _buffered, _hooks);
 
-                    _currentFileSequence = sequence;
                 }
                 catch (IOException ex)
                 {
                     if (IOErrors.IsLockedFile(ex))
                     {
-                        SelfLog.WriteLine("File target {0} was locked, attempting to open next in sequence (attempt {1})", path, attempt + 1);
-                        sequence = (sequence ?? 0) + 1;
-                        continue;
+                        SelfLog.WriteLine("File target {0} was locked, attempting to open next in sequence ", currentPath);
                     }
 
                     throw;
                 }
-
-                ApplyRetentionPolicy(path);
-                return;
             }
+            else
+            {
+                const int maxAttempts = 3;
+                for (var attempt = 0; attempt < maxAttempts; attempt++)
+                {
+                    _roller.GetLogFilePath(now, sequence, out var path);
+
+                    try
+                    {
+                        _currentFile = _shared ?
+#pragma warning disable 618
+                            (IFileSink)new SharedFileSink(path, _textFormatter, _fileSizeLimitBytes, _encoding) :
+#pragma warning restore 618
+                            new FileSink(path, _textFormatter, _fileSizeLimitBytes, _encoding, _buffered, _hooks);
+
+                        _currentFileSequence = sequence;
+                    }
+                    catch (IOException ex)
+                    {
+                        if (IOErrors.IsLockedFile(ex))
+                        {
+                            SelfLog.WriteLine("File target {0} was locked, attempting to open next in sequence (attempt {1})", path, attempt + 1);
+                            sequence = (sequence ?? 0) + 1;
+                            continue;
+                        }
+
+                        throw;
+                    }
+
+                    ApplyRetentionPolicy(path);
+                    return;
+                }
+            }
+
+
         }
 
         void ApplyRetentionPolicy(string currentFilePath)
