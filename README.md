@@ -26,6 +26,24 @@ log20180701.txt
 log20180702.txt
 ```
 
+If you want to preserve filename when rolling the logs, so it's always the filename that gets written to.
+It's mostly useful for other tools like fail2ban to be able to continuously read the log.
+Set the parameter preserveLogFilename to true. log.txt will always have the latest logs,  content will be copied to a new file and then flushed on file rolling.
+
+
+```
+log.txt
+log20180631.txt
+log20180701.txt
+log20180702.txt
+```
+
+```csharp
+var log = new LoggerConfiguration()
+    .WriteTo.File("log.txt", rollingInterval: RollingInterval.Day, preserveLogFilename: true)
+    .CreateLogger();
+```
+
 > **Important**: By default, only one process may write to a log file at a given time. See _Shared log files_ below for information on multi-process sharing.
 
 ### Limits
@@ -36,7 +54,7 @@ The limit can be changed or removed using the `fileSizeLimitBytes` parameter.
 
 ```csharp
     .WriteTo.File("log.txt", fileSizeLimitBytes: null)
-``` 
+```
 
 For the same reason, only **the most recent 31 files** are retained by default (i.e. one long month). To change or remove this limit, pass the `retainedFileCountLimit` parameter.
 
