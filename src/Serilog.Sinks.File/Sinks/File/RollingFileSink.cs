@@ -144,15 +144,8 @@ namespace Serilog.Sinks.File
                 .FirstOrDefault();
 
             var sequence = latestForThisCheckpoint?.SequenceNumber;
-            if (minSequence != null)
-            {
-                if (sequence == null || sequence.Value < minSequence.Value)
-                    sequence = minSequence;
-            }
-
             if (_keepFilename)
             {
-                const int maxAttempts = 3;
                 //Sequence number calculation is wrong when keeping filename. If there is an existing log file, latestForThisCheckpoint won't be null but will report
                 // a sequence number of 0 because filename will be (log.txt), if there are two files: sequence number will report 1 (log.txt, log-001.txt).
                 // But it should report 1 in the first case and 2 in the second case.
@@ -166,6 +159,17 @@ namespace Serilog.Sinks.File
                 {
                     sequence++;
                 }
+            }
+            if (minSequence != null)
+            {
+                if (sequence == null || sequence.Value < minSequence.Value)
+                    sequence = minSequence;
+            }
+
+            if (_keepFilename)
+            {
+                const int maxAttempts = 3;
+
                 // if current file exists we rename it with rolling date
                 //we lock this portion of the code to avoid another process in shared mode to move the file
                 //at the same time we are moving it. It might result in a missing file exception, because the second thread will try to move a file that has
