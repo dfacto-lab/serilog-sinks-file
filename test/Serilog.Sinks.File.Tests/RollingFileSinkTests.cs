@@ -251,6 +251,34 @@ namespace Serilog.Sinks.File.Tests
             }
         }
 
+        [Fact]
+        static void TestLogShouldRollWhenOverFlowed()
+        {
+            var temp = new TempFolder();
+            const string fileName = "log.txt";
+            for (var i = 0; i < 4; i++)
+            {
+                using (var log = new LoggerConfiguration()
+                    .WriteTo.File(Path.Combine(temp.Path, fileName), fileSizeLimitBytes: 1000, rollOnFileSizeLimit: true, preserveLogFilename: true)
+                    .CreateLogger())
+                {
+                    var longString = new string('0', 1000);
+                    log.Information(longString);
+                }
+            }
+            //we should have four files
+            var files = Directory.GetFiles(temp.Path)
+                .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            Assert.Equal(4, files.Length);
+            Assert.True(files[0].EndsWith(fileName), files[0]);
+            Assert.True(files[1].EndsWith("_001.txt"), files[1]);
+            Assert.True(files[2].EndsWith("_002.txt"), files[2]);
+            Assert.True(files[3].EndsWith("_003.txt"), files[2]);
+            temp.Dispose();
+        }
+
+        [Fact]
         static void TestRollingEventSequence(params LogEvent[] events)
         {
             TestRollingEventSequence(
@@ -258,6 +286,7 @@ namespace Serilog.Sinks.File.Tests
                 events);
         }
 
+        [Fact]
         static void TestRollingEventSequence(
             Action<string, LoggerSinkConfiguration> configureFile,
             IEnumerable<LogEvent> events,

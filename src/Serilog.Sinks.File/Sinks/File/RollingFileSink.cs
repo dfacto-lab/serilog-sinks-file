@@ -42,21 +42,27 @@ namespace Serilog.Sinks.File
         IFileSink _currentFile;
         int? _currentFileSequence;
 
+        private readonly object syncLock = new object();
+
+
         public RollingFileSink(string path,
-                              ITextFormatter textFormatter,
-                              long? fileSizeLimitBytes,
-                              int? retainedFileCountLimit,
-                              Encoding encoding,
-                              bool buffered,
-                              bool shared,
-                              RollingInterval rollingInterval,
-                              bool rollOnFileSizeLimit,
-                              FileLifecycleHooks hooks,
-                              bool keepFilename = false)
+            ITextFormatter textFormatter,
+            long? fileSizeLimitBytes,
+            int? retainedFileCountLimit,
+            Encoding encoding,
+            bool buffered,
+            bool shared,
+            RollingInterval rollingInterval,
+            bool rollOnFileSizeLimit,
+            FileLifecycleHooks hooks,
+            bool keepFilename = false)
         {
             if (path == null) throw new ArgumentNullException(nameof(path));
-            if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0) throw new ArgumentException("Negative value provided; file size limit must be non-negative.");
-            if (retainedFileCountLimit.HasValue && retainedFileCountLimit < 1) throw new ArgumentException("Zero or negative value provided; retained file count limit must be at least 1.");
+            if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0)
+                throw new ArgumentException("Negative value provided; file size limit must be non-negative.");
+            if (retainedFileCountLimit.HasValue && retainedFileCountLimit < 1)
+                throw new ArgumentException(
+                    "Zero or negative value provided; retained file count limit must be at least 1.");
 
             _roller = new PathRoller(path, rollingInterval);
             _textFormatter = textFormatter;
@@ -124,10 +130,12 @@ namespace Serilog.Sinks.File
                 if (Directory.Exists(_roller.LogFileDirectory))
                 {
                     existingFiles = Directory.GetFiles(_roller.LogFileDirectory, _roller.DirectorySearchPattern)
-                                         .Select(Path.GetFileName);
+                        .Select(Path.GetFileName);
                 }
             }
-            catch (DirectoryNotFoundException) { }
+            catch (DirectoryNotFoundException)
+            {
+            }
 
             var latestForThisCheckpoint = _roller
                 .SelectMatches(existingFiles)
@@ -141,55 +149,79 @@ namespace Serilog.Sinks.File
                 if (sequence == null || sequence.Value < minSequence.Value)
                     sequence = minSequence;
             }
+
             if (_keepFilename)
             {
                 const int maxAttempts = 3;
-                // if current file exists we rename it with rolling date
-                _roller.GetLogFilePath(out var currentPath);
-                if (System.IO.File.Exists(currentPath) && new FileInfo(currentPath).Length > 0)
+                //Sequence number calculation is wrong when keeping filename. If there is an existing log file, latestForThisCheckpoint won't be null but will report
+                // a sequence number of 0 because filename will be (log.txt), if there are two files: sequence number will report 1 (log.txt, log-001.txt).
+                // But it should report 1 in the first case and 2 in the second case.
+                //
+                if (sequence == null)
                 {
-                    for (var attempt = 0; attempt < maxAttempts; attempt++)
+                    if (latestForThisCheckpoint != null)
+                        sequence = 1;
+                }
+                else
+                {
+                    sequence++;
+                }
+                // if current file exists we rename it with rolling date
+                //we lock this portion of the code to avoid another process in shared mode to move the file
+                //at the same time we are moving it. It might result in a missing file exception, because the second thread will try to move a file that has
+                //been already moved.
+                lock (syncLock)
+                {
+                    _roller.GetLogFilePath(out var currentPath);
+                    if (System.IO.File.Exists(currentPath) && new FileInfo(currentPath).Length > 0)
                     {
-                        _roller.GetLogFilePath(now, sequence, out var path);
-                        try
+                        for (var attempt = 0; attempt < maxAttempts; attempt++)
                         {
-                           System.IO.File.Move(currentPath, path);
-                           _currentFileSequence = sequence;
-
-                        }
-                        catch (IOException ex)
-                        {
-                            if (IOErrors.IsLockedFile(ex))
+                            _roller.GetLogFilePath(now, sequence, out var path);
+                            try
                             {
-                                SelfLog.WriteLine("File target {0} was locked, attempting to open next in sequence (attempt {1})", path, attempt + 1);
-                                sequence = (sequence ?? 0) + 1;
-                                continue;
+                                System.IO.File.Move(currentPath, path);
+                                _currentFileSequence = sequence;
+                            }
+                            catch (IOException ex)
+                            {
+                                if (IOErrors.IsLockedFile(ex))
+                                {
+                                    SelfLog.WriteLine(
+                                        "File target {0} was locked, attempting to open next in sequence (attempt {1})",
+                                        path, attempt + 1);
+                                    sequence = (sequence ?? 0) + 1;
+                                    continue;
+                                }
+
+                                throw;
                             }
 
-                            throw;
+                            ApplyRetentionPolicy(path);
+                            break;
                         }
-                        ApplyRetentionPolicy(path);
-                        break;
                     }
-                }
-                //now we open the current file
-                try
-                {
-                    _currentFile = _shared ?
-#pragma warning disable 618
-                        (IFileSink)new SharedFileSink(currentPath, _textFormatter, _fileSizeLimitBytes, _encoding) :
-#pragma warning restore 618
-                        new FileSink(currentPath, _textFormatter, _fileSizeLimitBytes, _encoding, _buffered, _hooks);
 
-                }
-                catch (IOException ex)
-                {
-                    if (IOErrors.IsLockedFile(ex))
+                    //now we open the current file
+                    try
                     {
-                        SelfLog.WriteLine("File target {0} was locked, attempting to open next in sequence ", currentPath);
+                        _currentFile = _shared
+                            ?
+    #pragma warning disable 618
+                            (IFileSink) new SharedFileSink(currentPath, _textFormatter, _fileSizeLimitBytes, _encoding)
+                            :
+    #pragma warning restore 618
+                            new FileSink(currentPath, _textFormatter, _fileSizeLimitBytes, _encoding, _buffered, _hooks);
                     }
+                    catch (IOException ex)
+                    {
+                        if (IOErrors.IsLockedFile(ex))
+                        {
+                            SelfLog.WriteLine("File target {0} was locked, this should not happen", currentPath);
+                        }
 
-                    throw;
+                        throw;
+                    }
                 }
             }
             else
@@ -201,9 +233,11 @@ namespace Serilog.Sinks.File
 
                     try
                     {
-                        _currentFile = _shared ?
+                        _currentFile = _shared
+                            ?
 #pragma warning disable 618
-                            (IFileSink)new SharedFileSink(path, _textFormatter, _fileSizeLimitBytes, _encoding) :
+                            (IFileSink) new SharedFileSink(path, _textFormatter, _fileSizeLimitBytes, _encoding)
+                            :
 #pragma warning restore 618
                             new FileSink(path, _textFormatter, _fileSizeLimitBytes, _encoding, _buffered, _hooks);
 
@@ -213,7 +247,9 @@ namespace Serilog.Sinks.File
                     {
                         if (IOErrors.IsLockedFile(ex))
                         {
-                            SelfLog.WriteLine("File target {0} was locked, attempting to open next in sequence (attempt {1})", path, attempt + 1);
+                            SelfLog.WriteLine(
+                                "File target {0} was locked, attempting to open next in sequence (attempt {1})", path,
+                                attempt + 1);
                             sequence = (sequence ?? 0) + 1;
                             continue;
                         }
@@ -225,8 +261,6 @@ namespace Serilog.Sinks.File
                     return;
                 }
             }
-
-
         }
 
         void ApplyRetentionPolicy(string currentFilePath)
@@ -239,7 +273,7 @@ namespace Serilog.Sinks.File
             // because files are only opened on response to an event being processed.
             var potentialMatches = Directory.GetFiles(_roller.LogFileDirectory, _roller.DirectorySearchPattern)
                 .Select(Path.GetFileName)
-                .Union(new [] { currentFileName });
+                .Union(new[] {currentFileName});
 
             var newestFirst = _roller
                 .SelectMatches(potentialMatches)

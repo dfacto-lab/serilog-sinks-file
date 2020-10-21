@@ -28,7 +28,7 @@ log20180702.txt
 
 If you want to preserve filename when rolling the logs, so it's always the filename that gets written to.
 It's mostly useful for other tools like fail2ban to be able to continuously read the log.
-Set the parameter preserveLogFilename to true. log.txt will always have the latest logs,  content will be copied to a new file and then flushed on file rolling.
+Set the parameter preserveLogFilename to true. log.txt will always have the latest logs,     content will be copied to a new file and then flushed on file rolling.
 
 
 ```
