@@ -10,7 +10,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.0" PrivateAssets="All" />
-    <ProjectReference Include="..\..\src\Serilog.Sinks.File\Serilog.Sinks.File.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net47' ">
@@ -19,6 +18,10 @@
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Serilog.Sinks.PersistentFile\Serilog.Sinks.PersistentFile.csproj" />
   </ItemGroup>
 
 </Project>
