@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Write Serilog events to text files in plain or JSON format.</Description>
+    <Description>Write Serilog events to text files in plain or JSON format, while preserving log file name. Based on Serilog.Sinks.File.</Description>
     <VersionPrefix>4.1.0</VersionPrefix>
     <Authors>Serilog Contributors</Authors>
     <TargetFrameworks>net45;netstandard1.3;netstandard2.0</TargetFrameworks>
