@@ -278,7 +278,6 @@ namespace Serilog.Sinks.PersistentFile.Tests
             temp.Dispose();
         }
 
-        [Fact]
         static void TestRollingEventSequence(params LogEvent[] events)
         {
             TestRollingEventSequence(
@@ -286,7 +285,6 @@ namespace Serilog.Sinks.PersistentFile.Tests
                 events);
         }
 
-        [Fact]
         static void TestRollingEventSequence(
             Action<string, LoggerSinkConfiguration> configureFile,
             IEnumerable<LogEvent> events,
