@@ -14,7 +14,7 @@ namespace Sample
             var sw = System.Diagnostics.Stopwatch.StartNew();
 
             Log.Logger = new LoggerConfiguration()
-                .WriteTo.File("log.txt")
+                .WriteTo.PersistentFile("log.txt")
                 .CreateLogger();
 
             for (var i = 0; i < 1000000; ++i)

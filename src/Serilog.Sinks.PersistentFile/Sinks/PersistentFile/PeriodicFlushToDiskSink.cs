@@ -23,7 +23,7 @@ namespace Serilog.Sinks.PersistentFile
     /// <summary>
     /// A sink wrapper that periodically flushes the wrapped sink to disk.
     /// </summary>
-    [Obsolete("This type will be removed from the public API in a future version; use `WriteTo.File(flushToDiskInterval:)` instead.")]
+    [Obsolete("This type will be removed from the public API in a future version; use `WriteTo.PersistentFile(flushToDiskInterval:)` instead.")]
     public class PeriodicFlushToDiskSink : ILogEventSink, IDisposable
     {
         readonly ILogEventSink _sink;

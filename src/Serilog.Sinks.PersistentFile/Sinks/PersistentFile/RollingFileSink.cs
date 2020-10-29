@@ -52,7 +52,7 @@ namespace Serilog.Sinks.PersistentFile
             Encoding encoding,
             bool buffered,
             bool shared,
-            RollingInterval rollingInterval,
+            PersistentFileRollingInterval persistentFileRollingInterval,
             bool rollOnFileSizeLimit,
             FileLifecycleHooks hooks,
             bool keepFilename = false)
@@ -64,7 +64,7 @@ namespace Serilog.Sinks.PersistentFile
                 throw new ArgumentException(
                     "Zero or negative value provided; retained file count limit must be at least 1.");
 
-            _roller = new PathRoller(path, rollingInterval);
+            _roller = new PathRoller(path, persistentFileRollingInterval);
             _textFormatter = textFormatter;
             _fileSizeLimitBytes = fileSizeLimitBytes;
             _retainedFileCountLimit = retainedFileCountLimit;

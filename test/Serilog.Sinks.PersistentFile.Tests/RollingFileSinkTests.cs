@@ -23,7 +23,7 @@ namespace Serilog.Sinks.PersistentFile.Tests
         public void EventsAreWrittenWhenSharingIsEnabled()
         {
             TestRollingEventSequence(
-                (pf, wt) => wt.File(pf, shared: true, rollingInterval: RollingInterval.Day),
+                (pf, wt) => wt.PersistentFile(pf, shared: true, persistentFileRollingInterval: PersistentFileRollingInterval.Day),
                 new[] { Some.InformationEvent() });
         }
 
@@ -31,7 +31,7 @@ namespace Serilog.Sinks.PersistentFile.Tests
         public void EventsAreWrittenWhenBufferingIsEnabled()
         {
             TestRollingEventSequence(
-                (pf, wt) => wt.File(pf, buffered: true, rollingInterval: RollingInterval.Day),
+                (pf, wt) => wt.PersistentFile(pf, buffered: true, persistentFileRollingInterval: PersistentFileRollingInterval.Day),
                 new[] { Some.InformationEvent() });
         }
 
@@ -40,7 +40,7 @@ namespace Serilog.Sinks.PersistentFile.Tests
         {
             // Doesn't test flushing, but ensures we haven't broken basic logging
             TestRollingEventSequence(
-                (pf, wt) => wt.File(pf, flushToDiskInterval: TimeSpan.FromMilliseconds(50), rollingInterval: RollingInterval.Day),
+                (pf, wt) => wt.PersistentFile(pf, flushToDiskInterval: TimeSpan.FromMilliseconds(50), persistentFileRollingInterval: PersistentFileRollingInterval.Day),
                 new[] { Some.InformationEvent() });
         }
 
@@ -60,7 +60,7 @@ namespace Serilog.Sinks.PersistentFile.Tests
                 e3 = Some.InformationEvent(e2.Timestamp.AddDays(5));
 
             TestRollingEventSequence(
-                (pf, wt) => wt.File(pf, retainedFileCountLimit: 2, rollingInterval: RollingInterval.Day),
+                (pf, wt) => wt.PersistentFile(pf, retainedFileCountLimit: 2, persistentFileRollingInterval: PersistentFileRollingInterval.Day),
                 new[] {e1, e2, e3},
                 files =>
                 {
@@ -77,7 +77,7 @@ namespace Serilog.Sinks.PersistentFile.Tests
             var fileName = Some.String() + ".txt";
             using (var temp = new TempFolder())
             using (var log = new LoggerConfiguration()
-                .WriteTo.File(Path.Combine(temp.Path, fileName), rollOnFileSizeLimit: true, fileSizeLimitBytes: 1)
+                .WriteTo.PersistentFile(Path.Combine(temp.Path, fileName), rollOnFileSizeLimit: true, fileSizeLimitBytes: 1)
                 .CreateLogger())
             {
                 LogEvent e1 = Some.InformationEvent(),
@@ -114,7 +114,7 @@ namespace Serilog.Sinks.PersistentFile.Tests
                 };
 
                 using (var log = new LoggerConfiguration()
-                    .WriteTo.File(Path.Combine(temp.Path, fileName), rollOnFileSizeLimit: true, fileSizeLimitBytes: 1, hooks: gzipWrapper)
+                    .WriteTo.PersistentFile(Path.Combine(temp.Path, fileName), rollOnFileSizeLimit: true, fileSizeLimitBytes: 1, hooks: gzipWrapper)
                     .CreateLogger())
                 {
 
@@ -168,7 +168,7 @@ namespace Serilog.Sinks.PersistentFile.Tests
             try
             {
                 log = new LoggerConfiguration()
-                    .WriteTo.File(pathFormat, retainedFileCountLimit: 3, rollingInterval: RollingInterval.Day)
+                    .WriteTo.PersistentFile(pathFormat, retainedFileCountLimit: 3, persistentFileRollingInterval: PersistentFileRollingInterval.Day)
                     .CreateLogger();
 
                 log.Write(Some.InformationEvent());
@@ -196,7 +196,7 @@ namespace Serilog.Sinks.PersistentFile.Tests
             var fileName = Some.String() + ".txt";
             using (var temp = new TempFolder())
             using (var log = new LoggerConfiguration()
-                .WriteTo.File(Path.Combine(temp.Path, fileName), rollOnFileSizeLimit: true, fileSizeLimitBytes: 1, preserveLogFilename: true)
+                .WriteTo.PersistentFile(Path.Combine(temp.Path, fileName), rollOnFileSizeLimit: true, fileSizeLimitBytes: 1, preserveLogFilename: true)
                 .CreateLogger())
             {
                 LogEvent e1 = Some.InformationEvent(),
@@ -224,7 +224,7 @@ namespace Serilog.Sinks.PersistentFile.Tests
             var fileName = "mylogfile.txt";
             using (var temp = new TempFolder())
             using (var log = new LoggerConfiguration()
-                .WriteTo.File(Path.Combine(temp.Path, fileName),  retainedFileCountLimit: null, preserveLogFilename: true, rollingInterval: RollingInterval.Day)
+                .WriteTo.PersistentFile(Path.Combine(temp.Path, fileName),  retainedFileCountLimit: null, preserveLogFilename: true, persistentFileRollingInterval: PersistentFileRollingInterval.Day)
                 .CreateLogger())
             {
                 LogEvent e1 = Some.InformationEvent(),
@@ -259,7 +259,7 @@ namespace Serilog.Sinks.PersistentFile.Tests
             for (var i = 0; i < 4; i++)
             {
                 using (var log = new LoggerConfiguration()
-                    .WriteTo.File(Path.Combine(temp.Path, fileName), fileSizeLimitBytes: 1000, rollOnFileSizeLimit: true, preserveLogFilename: true)
+                    .WriteTo.PersistentFile(Path.Combine(temp.Path, fileName), fileSizeLimitBytes: 1000, rollOnFileSizeLimit: true, preserveLogFilename: true)
                     .CreateLogger())
                 {
                     var longString = new string('0', 1000);
@@ -281,7 +281,7 @@ namespace Serilog.Sinks.PersistentFile.Tests
         static void TestRollingEventSequence(params LogEvent[] events)
         {
             TestRollingEventSequence(
-                (pf, wt) => wt.File(pf, retainedFileCountLimit: null, rollingInterval: RollingInterval.Day),
+                (pf, wt) => wt.PersistentFile(pf, retainedFileCountLimit: null, persistentFileRollingInterval: PersistentFileRollingInterval.Day),
                 events);
         }
 

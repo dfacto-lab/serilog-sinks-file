@@ -45,7 +45,7 @@ namespace Serilog.Sinks.PersistentFile
         /// <returns>Configuration object allowing method chaining.</returns>
         /// <remarks>This constructor preserves compatibility with early versions of the public API. New code should not depend on this type.</remarks>
         /// <exception cref="IOException"></exception>
-        [Obsolete("This type and constructor will be removed from the public API in a future version; use `WriteTo.File()` instead.")]
+        [Obsolete("This type and constructor will be removed from the public API in a future version; use `WriteTo.PersistentFile()` instead.")]
         public FileSink(string path, ITextFormatter textFormatter, long? fileSizeLimitBytes, Encoding encoding = null, bool buffered = false)
             : this(path, textFormatter, fileSizeLimitBytes, encoding, buffered, null)
         {

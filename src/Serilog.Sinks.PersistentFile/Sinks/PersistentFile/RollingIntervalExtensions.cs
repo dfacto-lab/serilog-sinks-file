@@ -18,49 +18,49 @@ namespace Serilog.Sinks.PersistentFile
 {
     static class RollingIntervalExtensions
     {
-        public static string GetFormat(this RollingInterval interval)
+        public static string GetFormat(this PersistentFileRollingInterval interval)
         {
             switch (interval)
             {
-                case RollingInterval.Infinite:
+                case PersistentFileRollingInterval.Infinite:
                     return "";
-                case RollingInterval.Year:
+                case PersistentFileRollingInterval.Year:
                     return "yyyy";
-                case RollingInterval.Month:
+                case PersistentFileRollingInterval.Month:
                     return "yyyyMM";
-                case RollingInterval.Day:
+                case PersistentFileRollingInterval.Day:
                     return "yyyyMMdd";
-                case RollingInterval.Hour:
+                case PersistentFileRollingInterval.Hour:
                     return "yyyyMMddHH";
-                case RollingInterval.Minute:
+                case PersistentFileRollingInterval.Minute:
                     return "yyyyMMddHHmm";
                 default:
                     throw new ArgumentException("Invalid rolling interval");
             }
         }
 
-        public static DateTime? GetCurrentCheckpoint(this RollingInterval interval, DateTime instant)
+        public static DateTime? GetCurrentCheckpoint(this PersistentFileRollingInterval interval, DateTime instant)
         {
             switch (interval)
             {
-                case RollingInterval.Infinite:
+                case PersistentFileRollingInterval.Infinite:
                     return null;
-                case RollingInterval.Year:
+                case PersistentFileRollingInterval.Year:
                     return new DateTime(instant.Year, 1, 1, 0, 0, 0, instant.Kind);
-                case RollingInterval.Month:
+                case PersistentFileRollingInterval.Month:
                     return new DateTime(instant.Year, instant.Month, 1, 0, 0, 0, instant.Kind);
-                case RollingInterval.Day:
+                case PersistentFileRollingInterval.Day:
                     return new DateTime(instant.Year, instant.Month, instant.Day, 0, 0, 0, instant.Kind);
-                case RollingInterval.Hour:
+                case PersistentFileRollingInterval.Hour:
                     return new DateTime(instant.Year, instant.Month, instant.Day, instant.Hour, 0, 0, instant.Kind);
-                case RollingInterval.Minute:
+                case PersistentFileRollingInterval.Minute:
                     return new DateTime(instant.Year, instant.Month, instant.Day, instant.Hour, instant.Minute, 0, instant.Kind);
                 default:
                     throw new ArgumentException("Invalid rolling interval");
             }
         }
 
-        public static DateTime? GetNextCheckpoint(this RollingInterval interval, DateTime instant)
+        public static DateTime? GetNextCheckpoint(this PersistentFileRollingInterval interval, DateTime instant)
         {
             var current = GetCurrentCheckpoint(interval, instant);
             if (current == null)
@@ -68,15 +68,15 @@ namespace Serilog.Sinks.PersistentFile
 
             switch (interval)
             {
-                case RollingInterval.Year:
+                case PersistentFileRollingInterval.Year:
                     return current.Value.AddYears(1);
-                case RollingInterval.Month:
+                case PersistentFileRollingInterval.Month:
                     return current.Value.AddMonths(1);
-                case RollingInterval.Day:
+                case PersistentFileRollingInterval.Day:
                     return current.Value.AddDays(1);
-                case RollingInterval.Hour:
+                case PersistentFileRollingInterval.Hour:
                     return current.Value.AddHours(1);
-                case RollingInterval.Minute:
+                case PersistentFileRollingInterval.Minute:
                     return current.Value.AddMinutes(1);
                 default:
                     throw new ArgumentException("Invalid rolling interval");

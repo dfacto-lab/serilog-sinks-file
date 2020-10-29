@@ -30,10 +30,10 @@ namespace Serilog.Sinks.PersistentFile
         readonly string _filenameSuffix;
         readonly Regex _filenameMatcher;
 
-        readonly RollingInterval _interval;
+        readonly PersistentFileRollingInterval _interval;
         readonly string _periodFormat;
 
-        public PathRoller(string path, RollingInterval interval)
+        public PathRoller(string path, PersistentFileRollingInterval interval)
         {
             if (path == null) throw new ArgumentNullException(nameof(path));
             _interval = interval;

@@ -27,7 +27,7 @@ namespace Serilog.Sinks.PersistentFile
     /// <summary>
     /// Write log events to a disk file.
     /// </summary>
-    [Obsolete("This type will be removed from the public API in a future version; use `WriteTo.File(shared: true)` instead.")]
+    [Obsolete("This type will be removed from the public API in a future version; use `WriteTo.PersistentFile(shared: true)` instead.")]
     public sealed class SharedFileSink : IFileSink, IDisposable
     {
         readonly TextWriter _output;

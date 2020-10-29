@@ -16,7 +16,7 @@ namespace Serilog.Sinks.PersistentFile.Tests
         public void WhenWritingCreationExceptionsAreSuppressed()
         {
             new LoggerConfiguration()
-                .WriteTo.File(InvalidPath)
+                .WriteTo.PersistentFile(InvalidPath)
                 .CreateLogger();
         }
 
@@ -25,7 +25,7 @@ namespace Serilog.Sinks.PersistentFile.Tests
         {
             Assert.Throws<ArgumentException>(() =>
                 new LoggerConfiguration()
-                    .AuditTo.File(InvalidPath)
+                    .AuditTo.PersistentFile(InvalidPath)
                     .CreateLogger());
         }
 
@@ -34,7 +34,7 @@ namespace Serilog.Sinks.PersistentFile.Tests
         {
             using (var tmp = TempFolder.ForCaller())
             using (var log = new LoggerConfiguration()
-                .WriteTo.File(new ThrowingLogEventFormatter(), tmp.AllocateFilename())
+                .WriteTo.PersistentFile(new ThrowingLogEventFormatter(), tmp.AllocateFilename())
                 .CreateLogger())
             {
                 log.Information("Hello");
@@ -46,7 +46,7 @@ namespace Serilog.Sinks.PersistentFile.Tests
         {
             using (var tmp = TempFolder.ForCaller())
             using (var log = new LoggerConfiguration()
-                .AuditTo.File(new ThrowingLogEventFormatter(), tmp.AllocateFilename())
+                .AuditTo.PersistentFile(new ThrowingLogEventFormatter(), tmp.AllocateFilename())
                 .CreateLogger())
             {
                 var ex = Assert.Throws<AggregateException>(() => log.Information("Hello"));
@@ -59,7 +59,7 @@ namespace Serilog.Sinks.PersistentFile.Tests
         {
             using (var tmp = TempFolder.ForCaller())
             using (var log = new LoggerConfiguration()
-                .WriteTo.File(tmp.AllocateFilename(), flushToDiskInterval: TimeSpan.FromMilliseconds(500))
+                .WriteTo.PersistentFile(tmp.AllocateFilename(), flushToDiskInterval: TimeSpan.FromMilliseconds(500))
                 .CreateLogger())
             {
                 log.Information("Hello");
@@ -72,7 +72,7 @@ namespace Serilog.Sinks.PersistentFile.Tests
         {
             using (var tmp = TempFolder.ForCaller())
             using (var log = new LoggerConfiguration()
-                .WriteTo.File(tmp.AllocateFilename(), shared: true, flushToDiskInterval: TimeSpan.FromMilliseconds(500))
+                .WriteTo.PersistentFile(tmp.AllocateFilename(), shared: true, flushToDiskInterval: TimeSpan.FromMilliseconds(500))
                 .CreateLogger())
             {
                 log.Information("Hello");
@@ -85,7 +85,7 @@ namespace Serilog.Sinks.PersistentFile.Tests
         {
             Assert.Throws<ArgumentException>(() =>
                 new LoggerConfiguration()
-                    .WriteTo.File("logs", buffered: true, shared: true));
+                    .WriteTo.PersistentFile("logs", buffered: true, shared: true));
         }
 
         [Fact]
@@ -93,7 +93,7 @@ namespace Serilog.Sinks.PersistentFile.Tests
         {
             Assert.Throws<ArgumentException>(() =>
                 new LoggerConfiguration()
-                    .WriteTo.File("logs", shared: true, hooks: new GZipHooks()));
+                    .WriteTo.PersistentFile("logs", shared: true, hooks: new GZipHooks()));
         }
 
         [Theory]
@@ -106,7 +106,7 @@ namespace Serilog.Sinks.PersistentFile.Tests
                 var filename = tmp.AllocateFilename("txt");
 
                 using (var log = new LoggerConfiguration()
-                    .WriteTo.File(filename, outputTemplate: "{Message}", encoding: Encoding.Unicode, shared: shared)
+                    .WriteTo.PersistentFile(filename, outputTemplate: "{Message}", encoding: Encoding.Unicode, shared: shared)
                     .CreateLogger())
                 {
                     log.Information("ten chars.");
