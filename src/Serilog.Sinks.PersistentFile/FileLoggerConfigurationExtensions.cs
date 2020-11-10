@@ -252,7 +252,7 @@ namespace Serilog
             int? retainedFileCountLimit = DefaultRetainedFileCountLimit,
             Encoding encoding = null,
             FileLifecycleHooks hooks = null,
-            bool preserveLogFilename = false)
+            bool preserveLogFilename = true)
         {
             if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));
             if (path == null) throw new ArgumentNullException(nameof(path));
@@ -309,7 +309,7 @@ namespace Serilog
             int? retainedFileCountLimit = DefaultRetainedFileCountLimit,
             Encoding encoding = null,
             FileLifecycleHooks hooks = null,
-            bool preserveLogFilename = false)
+            bool preserveLogFilename = true)
         {
             if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));
             if (formatter == null) throw new ArgumentNullException(nameof(formatter));
@@ -456,7 +456,7 @@ namespace Serilog
             bool rollOnFileSizeLimit,
             int? retainedFileCountLimit,
             FileLifecycleHooks hooks,
-            bool preserveLogFilename = false)
+            bool preserveLogFilename = true)
         {
             if (addSink == null) throw new ArgumentNullException(nameof(addSink));
             if (formatter == null) throw new ArgumentNullException(nameof(formatter));

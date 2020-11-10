@@ -12,11 +12,11 @@ Install the [Serilog.Sinks.PersistentFile](https://www.nuget.org/packages/Serilo
 Install-Package Serilog.Sinks.PersistentFile
 ```
 
-To configure the sink in C# code, call `WriteTo.File()` during logger configuration:
+To configure the sink in C# code, call `WriteTo.PersistentFile()` during logger configuration:
 
 ```csharp
 var log = new LoggerConfiguration()
-    .WriteTo.File("log.txt", rollingInterval: RollingInterval.Day)
+    .WriteTo.PersistentFile("log.txt", rollingInterval: RollingInterval.Day)
     .CreateLogger();
 ```
 
@@ -42,7 +42,7 @@ log20180702.txt
 
 ```csharp
 var log = new LoggerConfiguration()
-    .WriteTo.File("log.txt", rollingInterval: RollingInterval.Day, preserveLogFilename: true)
+    .WriteTo.PersistentFile("log.txt", rollingInterval: RollingInterval.Day, preserveLogFilename: true)
     .CreateLogger();
 ```
 
@@ -55,13 +55,13 @@ To avoid bringing down apps with runaway disk usage the file sink **limits file 
 The limit can be changed or removed using the `fileSizeLimitBytes` parameter.
 
 ```csharp
-    .WriteTo.File("log.txt", fileSizeLimitBytes: null)
+    .WriteTo.PersistentFile("log.txt", fileSizeLimitBytes: null)
 ```
 
 For the same reason, only **the most recent 31 files** are retained by default (i.e. one long month). To change or remove this limit, pass the `retainedFileCountLimit` parameter.
 
 ```csharp
-    .WriteTo.File("log.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: null)
+    .WriteTo.PersistentFile("log.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: null)
 ```
 
 ### Rolling policies
@@ -71,7 +71,7 @@ To create a log file per day or other time period, specify a `rollingInterval` a
 To roll when the file reaches `fileSizeLimitBytes`, specify `rollOnFileSizeLimit`:
 
 ```csharp
-    .WriteTo.File("log.txt", rollOnFileSizeLimit: true)
+    .WriteTo.PersistentFile("log.txt", rollOnFileSizeLimit: true)
 ```
 
 This will create a file set like:
@@ -111,7 +111,7 @@ In your application's `App.config` or `Web.config` file, specify the file sink a
     <add key="serilog:write-to:File.path" value="log.txt" />
 ```
 
-The parameters that can be set through the `serilog:write-to:File` keys are the method parameters accepted by the `WriteTo.File()` configuration method. This means, for example, that the `fileSizeLimitBytes` parameter can be set with:
+The parameters that can be set through the `serilog:write-to:File` keys are the method parameters accepted by the `WriteTo.PersistentFile()` configuration method. This means, for example, that the `fileSizeLimitBytes` parameter can be set with:
 
 ```xml
     <add key="serilog:write-to:File.fileSizeLimitBytes" value="1234567" />
@@ -176,7 +176,7 @@ The format is controlled using an _output template_, which the file configuratio
 The default format above corresponds to an output template like:
 
 ```csharp
-  .WriteTo.File("log.txt",
+  .WriteTo.PersistentFile("log.txt",
     outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
 ```
 
@@ -186,7 +186,7 @@ To write events to the file in an alternative format such as [JSON](https://gith
 
 ```csharp
     // Install-Package Serilog.Formatting.Compact
-    .WriteTo.File(new CompactJsonFormatter(), "log.txt")
+    .WriteTo.PersistentFile(new CompactJsonFormatter(), "log.txt")
 ```
 
 ### Shared log files
@@ -194,7 +194,7 @@ To write events to the file in an alternative format such as [JSON](https://gith
 To enable multi-process shared log files, set `shared` to `true`:
 
 ```csharp
-    .WriteTo.File("log.txt", shared: true)
+    .WriteTo.PersistentFile("log.txt", shared: true)
 ```
 
 ### Auditing
