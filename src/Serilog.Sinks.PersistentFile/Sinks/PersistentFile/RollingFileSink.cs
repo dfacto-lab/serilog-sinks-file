@@ -177,7 +177,9 @@ namespace Serilog.Sinks.PersistentFile
                 lock (syncLock)
                 {
                     _roller.GetLogFilePath(out var currentPath);
-                    if (System.IO.File.Exists(currentPath) && new FileInfo(currentPath).Length > 0)
+                    var fileInfo = new FileInfo(currentPath);
+                    //we check of we have reach file size limit, if not we keep the same file. If we dont have roll on file size enable, we will create a new file as soon as one exists even if it is empty.
+                    if (File.Exists(currentPath) && (_rollOnFileSizeLimit ? fileInfo.Length >= _fileSizeLimitBytes : fileInfo.Length > 0))
                     {
                         for (var attempt = 0; attempt < maxAttempts; attempt++)
                         {
