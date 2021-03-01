@@ -65,8 +65,8 @@ namespace Serilog.Sinks.PersistentFile.Tests
                 files =>
                 {
                     Assert.Equal(3, files.Count);
-                    Assert.True(!System.IO.File.Exists(files[0]));
-                    Assert.True(System.IO.File.Exists(files[1]));
+                    Assert.True(System.IO.File.Exists(files[0]));
+                    Assert.True(!System.IO.File.Exists(files[1]));
                     Assert.True(System.IO.File.Exists(files[2]));
                 });
         }
@@ -132,6 +132,14 @@ namespace Serilog.Sinks.PersistentFile.Tests
                     Assert.True(files[1].EndsWith("_001.txt"), files[1]);
                     Assert.True(files[2].EndsWith("_002.txt"), files[2]);
                 }
+                //with persistent file name we must reverse the first and last file of the array because, the last file we write to is always the same file
+                //sorting by name will put this file at the first place instead of the last.
+                var t = files[0];
+                for (var i = 0; i < files.Length - 1; i++)
+                    files[i] = files[i+1];
+                files[files.Length - 1] = t;
+
+
 
                 // Ensure the data was written through the wrapping GZipStream, by decompressing and comparing against
                 // what we wrote
@@ -302,15 +310,22 @@ namespace Serilog.Sinks.PersistentFile.Tests
 
             try
             {
+                var count = 0;
                 foreach (var @event in events)
                 {
                     Clock.SetTestDateTimeNow(@event.Timestamp.DateTime);
                     log.Write(@event);
-
-                    var expected = pathFormat.Replace(".txt", @event.Timestamp.ToString("yyyyMMdd") + ".txt");
+                    //we have persistent file therefore the current file is always the path
+                    var expected = pathFormat;
                     Assert.True(System.IO.File.Exists(expected));
+                    if (count > 0)
+                    {
+                        expected = pathFormat.Replace(".txt", @event.Timestamp.ToString("yyyyMMdd") + ".txt");
+                        Assert.True(System.IO.File.Exists(expected));
+                    }
 
                     verified.Add(expected);
+                    count++;
                 }
             }
             finally
