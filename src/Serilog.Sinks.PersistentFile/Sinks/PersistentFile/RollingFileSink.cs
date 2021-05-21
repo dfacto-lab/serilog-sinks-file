@@ -35,6 +35,7 @@ namespace Serilog.Sinks.PersistentFile
         readonly bool _rollOnFileSizeLimit;
         readonly FileLifecycleHooks _hooks;
         readonly bool _keepFilename;
+        readonly bool _rollOnEachProcessRun;
 
         readonly object _syncRoot = new object();
         bool _isDisposed;
@@ -42,7 +43,7 @@ namespace Serilog.Sinks.PersistentFile
         IFileSink _currentFile;
         int? _currentFileSequence;
 
-        private readonly object syncLock = new object();
+        private readonly object _syncLock = new object();
 
 
         public RollingFileSink(string path,
@@ -55,7 +56,8 @@ namespace Serilog.Sinks.PersistentFile
             PersistentFileRollingInterval persistentFileRollingInterval,
             bool rollOnFileSizeLimit,
             FileLifecycleHooks hooks,
-            bool keepFilename = false)
+            bool keepFilename = false,
+            bool rollOnEachProcessRun = true)
         {
             if (path == null) throw new ArgumentNullException(nameof(path));
             if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0)
@@ -74,6 +76,7 @@ namespace Serilog.Sinks.PersistentFile
             _rollOnFileSizeLimit = rollOnFileSizeLimit;
             _hooks = hooks;
             _keepFilename = keepFilename;
+            _rollOnEachProcessRun = rollOnEachProcessRun;
         }
 
         public void Emit(LogEvent logEvent)
@@ -118,6 +121,8 @@ namespace Serilog.Sinks.PersistentFile
 
         void OpenFile(DateTime now, int? minSequence = null)
         {
+            // If _nextCheckpoint is null, it's a new process run.
+            var canRoll = _rollOnEachProcessRun && !_nextCheckpoint.HasValue;
             var currentCheckpoint = _roller.GetCurrentCheckpoint(now);
 
             // We only try periodically because repeated failures
@@ -174,12 +179,12 @@ namespace Serilog.Sinks.PersistentFile
                 //we lock this portion of the code to avoid another process in shared mode to move the file
                 //at the same time we are moving it. It might result in a missing file exception, because the second thread will try to move a file that has
                 //been already moved.
-                lock (syncLock)
+                lock (_syncLock)
                 {
                     _roller.GetLogFilePath(out var currentPath);
                     var fileInfo = new FileInfo(currentPath);
                     //we check of we have reach file size limit, if not we keep the same file. If we dont have roll on file size enable, we will create a new file as soon as one exists even if it is empty.
-                    if (File.Exists(currentPath) && (_rollOnFileSizeLimit ? fileInfo.Length >= _fileSizeLimitBytes : fileInfo.Length > 0))
+                    if (File.Exists(currentPath) && canRoll && (_rollOnFileSizeLimit ? fileInfo.Length >= _fileSizeLimitBytes : fileInfo.Length > 0))
                     {
                         for (var attempt = 0; attempt < maxAttempts; attempt++)
                         {
