@@ -185,7 +185,7 @@ namespace Serilog.Sinks.PersistentFile
                     {
                         for (var attempt = 0; attempt < maxAttempts; attempt++)
                         {
-                            _roller.GetLogFilePath(now, sequence, out var path);
+                            _roller.GetLogFilePath(fileInfo.LastWriteTime, sequence, out var path);
                             try
                             {
                                 System.IO.File.Move(currentPath, path);
@@ -193,10 +193,10 @@ namespace Serilog.Sinks.PersistentFile
                             }
                             catch (IOException ex)
                             {
-                                if (IOErrors.IsLockedFile(ex))
+                                if (IOErrors.IsLockedFile(ex) || File.Exists(path))
                                 {
                                     SelfLog.WriteLine(
-                                        "File target {0} was locked, attempting to open next in sequence (attempt {1})",
+                                        "File target {0} was locked or exists, attempting to open next in sequence (attempt {1})",
                                         path, attempt + 1);
                                     sequence = (sequence ?? 0) + 1;
                                     continue;
@@ -205,7 +205,6 @@ namespace Serilog.Sinks.PersistentFile
                                 throw;
                             }
 
-                            ApplyRetentionPolicy(path);
                             break;
                         }
                     }
@@ -230,6 +229,8 @@ namespace Serilog.Sinks.PersistentFile
 
                         throw;
                     }
+
+                    ApplyRetentionPolicy(currentPath);
                 }
             }
             else

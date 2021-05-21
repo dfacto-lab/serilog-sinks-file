@@ -56,18 +56,32 @@ namespace Serilog.Sinks.PersistentFile.Tests
         public void WhenRetentionCountIsSetOldFilesAreDeleted()
         {
             LogEvent e1 = Some.InformationEvent(),
-                e2 = Some.InformationEvent(e1.Timestamp.AddDays(1)),
-                e3 = Some.InformationEvent(e2.Timestamp.AddDays(5));
+                e2 = Some.InformationEvent(e1.Timestamp.AddDays(-1)),
+                e3 = Some.InformationEvent(e2.Timestamp.AddDays(-5));
+
+            string pathFormat = "";
 
             TestRollingEventSequence(
-                (pf, wt) => wt.PersistentFile(pf, retainedFileCountLimit: 2, persistentFileRollingInterval: PersistentFileRollingInterval.Day),
+                (pf, wt) =>
+                {
+                    pathFormat = pf;
+                    foreach (var @event in new[] {e1, e2, e3})
+                    {
+                        var dummyFile = pf.Replace(".txt", @event.Timestamp.ToString("yyyyMMdd") + ".txt");
+                        File.WriteAllText(dummyFile, "");
+                    }
+
+                    wt.PersistentFile(pf, retainedFileCountLimit: 2,
+                        persistentFileRollingInterval: PersistentFileRollingInterval.Day);
+                },
                 new[] {e1, e2, e3},
                 files =>
                 {
-                    Assert.Equal(3, files.Count);
+                    Assert.Equal(1, files.Count);
                     Assert.True(System.IO.File.Exists(files[0]));
-                    Assert.True(!System.IO.File.Exists(files[1]));
-                    Assert.True(System.IO.File.Exists(files[2]));
+
+                    var folder = new FileInfo(pathFormat).Directory?.FullName ?? "";
+                    Assert.Equal(2, Directory.GetFiles(folder).Length);
                 });
         }
 
@@ -254,8 +268,8 @@ namespace Serilog.Sinks.PersistentFile.Tests
                 Console.Out.WriteLine(files[1]);
                 Console.Out.WriteLine(files[2]);
                 Assert.True(files[0].EndsWith(fileName), files[0]);
-                Assert.True(files[1].EndsWith( e2.Timestamp.ToString("yyyyMMdd")+".txt"), files[1]);
-                Assert.True(files[2].EndsWith(e3.Timestamp.ToString("yyyyMMdd")+".txt"), files[2]);
+                Assert.True(files[1].EndsWith(DateTime.Today.ToString("yyyyMMdd")+".txt"), files[1]);
+                Assert.True(files[2].EndsWith(DateTime.Today.ToString("yyyyMMdd")+"_001.txt"), files[2]);
             }
         }
 
@@ -298,8 +312,8 @@ namespace Serilog.Sinks.PersistentFile.Tests
             var fileName = "mylogfile.txt";
             using (var temp = new TempFolder())
             {
-                MakeRunAndWriteLog(temp, out _);
                 MakeRunAndWriteLog(temp, out var t1);
+                MakeRunAndWriteLog(temp, out _);
                 MakeRunAndWriteLog(temp, out _);
 
                 var files = Directory.GetFiles(temp.Path)
@@ -314,8 +328,10 @@ namespace Serilog.Sinks.PersistentFile.Tests
 
             void MakeRunAndWriteLog(TempFolder temp, out DateTime timestamp)
             {
+                string file = Path.Combine(temp.Path, fileName);
+
                 using (var log = new LoggerConfiguration()
-                    .WriteTo.PersistentFile(Path.Combine(temp.Path, fileName), retainedFileCountLimit: null,
+                    .WriteTo.PersistentFile(file, retainedFileCountLimit: null,
                         preserveLogFilename: true, persistentFileRollingInterval: PersistentFileRollingInterval.Day,
                         rollOnEachProcessRun: true)
                     .CreateLogger())
@@ -325,6 +341,8 @@ namespace Serilog.Sinks.PersistentFile.Tests
                     Clock.SetTestDateTimeNow(timestamp);
                     log.Write(e1);
                 }
+
+                File.SetLastWriteTime(file, timestamp);
             }
         }
 
@@ -334,40 +352,41 @@ namespace Serilog.Sinks.PersistentFile.Tests
             var fileName = "mylogfile.txt";
             using (var temp = new TempFolder())
             {
+                MakeRunAndWriteLog(temp, 0, out var t0);
                 MakeRunAndWriteLog(temp, 0, out _);
-                MakeRunAndWriteLog(temp, 0, out _);
-                MakeRunAndWriteLog(temp, 2, out _);
                 MakeRunAndWriteLog(temp, 2, out var t1);
-                MakeRunAndWriteLog(temp, 3, out var t2);
+                MakeRunAndWriteLog(temp, 2, out _);
+                MakeRunAndWriteLog(temp, 3, out _);
 
                 var files = Directory.GetFiles(temp.Path)
                     .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
                     .ToArray();
 
-                Assert.Equal(4, files.Length);
+                Assert.Equal(5, files.Length);
                 Assert.True(files[0].EndsWith(fileName), files[0]);
-                Assert.True(files[1].EndsWith(t1.ToString("yyyyMMddHH")+".txt"), files[1]);
-                Assert.True(files[2].EndsWith(t1.ToString("yyyyMMddHH")+"_001.txt"), files[2]);
-                Assert.True(files[3].EndsWith(t2.ToString("yyyyMMddHH")+".txt"), files[3]);
+                Assert.True(files[1].EndsWith(t0.ToString("yyyyMMddHH")+".txt"), files[1]);
+                Assert.True(files[2].EndsWith(t0.ToString("yyyyMMddHH")+"_001.txt"), files[2]);
+                Assert.True(files[3].EndsWith(t1.ToString("yyyyMMddHH")+".txt"), files[3]);
+                Assert.True(files[4].EndsWith(t1.ToString("yyyyMMddHH")+"_001.txt"), files[4]);
             }
 
             void MakeRunAndWriteLog(TempFolder temp, int hoursToAdd, out DateTime timestamp)
             {
                 string file = Path.Combine(temp.Path, fileName);
-                var e1 = Some.InformationEvent();
 
                 using (var log = new LoggerConfiguration()
                     .WriteTo.PersistentFile(file, retainedFileCountLimit: null,
                         preserveLogFilename: true, persistentFileRollingInterval: PersistentFileRollingInterval.Hour,
-                        rollOnEachProcessRun: false)
+                        rollOnEachProcessRun: true)
                     .CreateLogger())
                 {
+                    var e1 = Some.InformationEvent();
                     timestamp = e1.Timestamp.DateTime.AddHours(hoursToAdd);
                     Clock.SetTestDateTimeNow(timestamp);
                     log.Write(e1);
                 }
 
-                File.SetLastWriteTime(file, e1.Timestamp.DateTime);
+                File.SetLastWriteTime(file, timestamp);
             }
         }
 
@@ -418,32 +437,23 @@ namespace Serilog.Sinks.PersistentFile.Tests
             configureFile(pathFormat, config.WriteTo);
             var log = config.CreateLogger();
 
-            var verified = new List<string>();
+            var verified = new HashSet<string>();
 
             try
             {
-                var count = 0;
                 foreach (var @event in events)
                 {
                     Clock.SetTestDateTimeNow(@event.Timestamp.DateTime);
                     log.Write(@event);
                     //we have persistent file therefore the current file is always the path
-                    var expected = pathFormat;
-                    Assert.True(System.IO.File.Exists(expected));
-                    if (count > 0)
-                    {
-                        expected = pathFormat.Replace(".txt", @event.Timestamp.ToString("yyyyMMdd") + ".txt");
-                        Assert.True(System.IO.File.Exists(expected));
-                    }
-
-                    verified.Add(expected);
-                    count++;
+                    Assert.True(System.IO.File.Exists(pathFormat));
+                    verified.Add(pathFormat);
                 }
             }
             finally
             {
                 log.Dispose();
-                verifyWritten?.Invoke(verified);
+                verifyWritten?.Invoke(verified.ToList());
                 Directory.Delete(folder, true);
             }
         }
