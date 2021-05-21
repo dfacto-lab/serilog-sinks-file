@@ -121,13 +121,10 @@ namespace Serilog.Sinks.PersistentFile
 
         void OpenFile(DateTime now, int? minSequence = null)
         {
-            // If _nextCheckpoint is null, it's a new process run.
-            var canRoll = _rollOnEachProcessRun && !_nextCheckpoint.HasValue;
             var currentCheckpoint = _roller.GetCurrentCheckpoint(now);
 
             // We only try periodically because repeated failures
             // to open log files REALLY slow an app down.
-            _nextCheckpoint = _roller.GetNextCheckpoint(now) ?? now.AddMinutes(30);
 
             var existingFiles = Enumerable.Empty<string>();
             try
@@ -184,7 +181,7 @@ namespace Serilog.Sinks.PersistentFile
                     _roller.GetLogFilePath(out var currentPath);
                     var fileInfo = new FileInfo(currentPath);
                     //we check of we have reach file size limit, if not we keep the same file. If we dont have roll on file size enable, we will create a new file as soon as one exists even if it is empty.
-                    if (File.Exists(currentPath) && canRoll && (_rollOnFileSizeLimit ? fileInfo.Length >= _fileSizeLimitBytes : fileInfo.Length > 0))
+                    if (File.Exists(currentPath) && MustRoll(now) && (_rollOnFileSizeLimit ? fileInfo.Length >= _fileSizeLimitBytes : fileInfo.Length > 0))
                     {
                         for (var attempt = 0; attempt < maxAttempts; attempt++)
                         {
@@ -272,6 +269,22 @@ namespace Serilog.Sinks.PersistentFile
                     return;
                 }
             }
+
+            _nextCheckpoint = _roller.GetNextCheckpoint(now) ?? now.AddMinutes(30);
+        }
+
+        private bool MustRoll(DateTime now)
+        {
+            if (_rollOnEachProcessRun)
+                return true;
+
+            var currentCheckpoint = _roller.GetCurrentCheckpoint(now);
+            if (!currentCheckpoint.HasValue)
+                return false;
+
+            _roller.GetLogFilePath(out var currentPath);
+            var fileInfo = new FileInfo(currentPath);
+            return fileInfo.Exists && fileInfo.LastWriteTime < currentCheckpoint;
         }
 
         void ApplyRetentionPolicy(string currentFilePath)

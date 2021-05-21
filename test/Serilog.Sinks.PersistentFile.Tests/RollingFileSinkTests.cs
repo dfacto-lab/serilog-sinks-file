@@ -329,6 +329,49 @@ namespace Serilog.Sinks.PersistentFile.Tests
         }
 
         [Fact]
+        static void LogFilenameRollsCorrectlyWhenRollOnEachProcessRunIsTrue()
+        {
+            var fileName = "mylogfile.txt";
+            using (var temp = new TempFolder())
+            {
+                MakeRunAndWriteLog(temp, 0, out _);
+                MakeRunAndWriteLog(temp, 0, out _);
+                MakeRunAndWriteLog(temp, 2, out _);
+                MakeRunAndWriteLog(temp, 2, out var t1);
+                MakeRunAndWriteLog(temp, 3, out var t2);
+
+                var files = Directory.GetFiles(temp.Path)
+                    .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+
+                Assert.Equal(4, files.Length);
+                Assert.True(files[0].EndsWith(fileName), files[0]);
+                Assert.True(files[1].EndsWith(t1.ToString("yyyyMMddHH")+".txt"), files[1]);
+                Assert.True(files[2].EndsWith(t1.ToString("yyyyMMddHH")+"_001.txt"), files[2]);
+                Assert.True(files[3].EndsWith(t2.ToString("yyyyMMddHH")+".txt"), files[3]);
+            }
+
+            void MakeRunAndWriteLog(TempFolder temp, int hoursToAdd, out DateTime timestamp)
+            {
+                string file = Path.Combine(temp.Path, fileName);
+                var e1 = Some.InformationEvent();
+
+                using (var log = new LoggerConfiguration()
+                    .WriteTo.PersistentFile(file, retainedFileCountLimit: null,
+                        preserveLogFilename: true, persistentFileRollingInterval: PersistentFileRollingInterval.Hour,
+                        rollOnEachProcessRun: false)
+                    .CreateLogger())
+                {
+                    timestamp = e1.Timestamp.DateTime.AddHours(hoursToAdd);
+                    Clock.SetTestDateTimeNow(timestamp);
+                    log.Write(e1);
+                }
+
+                File.SetLastWriteTime(file, e1.Timestamp.DateTime);
+            }
+        }
+
+        [Fact]
         static void TestLogShouldRollWhenOverFlowed()
         {
             var temp = new TempFolder();
