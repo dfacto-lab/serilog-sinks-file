@@ -193,7 +193,7 @@ namespace Serilog.Sinks.PersistentFile
                             }
                             catch (IOException ex)
                             {
-                                if (IOErrors.IsLockedFile(ex))
+                                if (IOErrors.IsLockedFile(ex) || File.Exists(path))
                                 {
                                     SelfLog.WriteLine(
                                         "File target {0} was locked, attempting to open next in sequence (attempt {1})",
