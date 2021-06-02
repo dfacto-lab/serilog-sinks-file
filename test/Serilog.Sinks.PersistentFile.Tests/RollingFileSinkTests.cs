@@ -4,10 +4,10 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
-using Xunit;
+using Serilog.Configuration;
 using Serilog.Events;
 using Serilog.Sinks.PersistentFile.Tests.Support;
-using Serilog.Configuration;
+using Xunit;
 
 namespace Serilog.Sinks.PersistentFile.Tests
 {
@@ -256,6 +256,118 @@ namespace Serilog.Sinks.PersistentFile.Tests
                 Assert.True(files[0].EndsWith(fileName), files[0]);
                 Assert.True(files[1].EndsWith( e2.Timestamp.ToString("yyyyMMdd")+".txt"), files[1]);
                 Assert.True(files[2].EndsWith(e3.Timestamp.ToString("yyyyMMdd")+".txt"), files[2]);
+            }
+        }
+
+        [Fact]
+        static void LogFilenameShouldNotChangeOnMultipleRunsWhenRollOnEachProcessRunIsFalse()
+        {
+            var fileName = "mylogfile.txt";
+            using (var temp = new TempFolder())
+            {
+                MakeRunAndWriteLog(temp);
+                MakeRunAndWriteLog(temp);
+                MakeRunAndWriteLog(temp);
+
+                var files = Directory.GetFiles(temp.Path)
+                    .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+
+                Assert.Equal(1, files.Length);
+                Assert.True(files[0].EndsWith(fileName), files[0]);
+            }
+
+            void MakeRunAndWriteLog(TempFolder temp)
+            {
+                using (var log = new LoggerConfiguration()
+                    .WriteTo.PersistentFile(Path.Combine(temp.Path, fileName), retainedFileCountLimit: null,
+                        preserveLogFilename: true, persistentFileRollingInterval: PersistentFileRollingInterval.Day,
+                        rollOnEachProcessRun: false)
+                    .CreateLogger())
+                {
+                    var e1 = Some.InformationEvent();
+                    Clock.SetTestDateTimeNow(e1.Timestamp.DateTime);
+                    log.Write(e1);
+                }
+            }
+        }
+
+        [Fact]
+        static void LogFilenameShouldChangeOnMultipleRunsWhenRollOnEachProcessRunIsTrue()
+        {
+            var fileName = "mylogfile.txt";
+            using (var temp = new TempFolder())
+            {
+                MakeRunAndWriteLog(temp, out _);
+                MakeRunAndWriteLog(temp, out var t1);
+                MakeRunAndWriteLog(temp, out _);
+
+                var files = Directory.GetFiles(temp.Path)
+                    .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+
+                Assert.Equal(3, files.Length);
+                Assert.True(files[0].EndsWith(fileName), files[0]);
+                Assert.True(files[1].EndsWith(t1.ToString("yyyyMMdd")+".txt"), files[1]);
+                Assert.True(files[2].EndsWith(t1.ToString("yyyyMMdd")+"_001.txt"), files[1]);
+            }
+
+            void MakeRunAndWriteLog(TempFolder temp, out DateTime timestamp)
+            {
+                using (var log = new LoggerConfiguration()
+                    .WriteTo.PersistentFile(Path.Combine(temp.Path, fileName), retainedFileCountLimit: null,
+                        preserveLogFilename: true, persistentFileRollingInterval: PersistentFileRollingInterval.Day,
+                        rollOnEachProcessRun: true)
+                    .CreateLogger())
+                {
+                    var e1 = Some.InformationEvent();
+                    timestamp = e1.Timestamp.DateTime;
+                    Clock.SetTestDateTimeNow(timestamp);
+                    log.Write(e1);
+                }
+            }
+        }
+
+        [Fact]
+        static void LogFilenameRollsCorrectlyWhenRollOnEachProcessRunIsTrue()
+        {
+            var fileName = "mylogfile.txt";
+            using (var temp = new TempFolder())
+            {
+                MakeRunAndWriteLog(temp, 0, out _);
+                MakeRunAndWriteLog(temp, 0, out _);
+                MakeRunAndWriteLog(temp, 2, out _);
+                MakeRunAndWriteLog(temp, 2, out var t1);
+                MakeRunAndWriteLog(temp, 3, out var t2);
+
+                var files = Directory.GetFiles(temp.Path)
+                    .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+
+                Assert.Equal(4, files.Length);
+                Assert.True(files[0].EndsWith(fileName), files[0]);
+                Assert.True(files[1].EndsWith(t1.ToString("yyyyMMddHH")+".txt"), files[1]);
+                Assert.True(files[2].EndsWith(t1.ToString("yyyyMMddHH")+"_001.txt"), files[2]);
+                Assert.True(files[3].EndsWith(t2.ToString("yyyyMMddHH")+".txt"), files[3]);
+            }
+
+            void MakeRunAndWriteLog(TempFolder temp, int hoursToAdd, out DateTime timestamp)
+            {
+                string file = Path.Combine(temp.Path, fileName);
+                var e1 = Some.InformationEvent();
+
+                using (var log = new LoggerConfiguration()
+                    .WriteTo.PersistentFile(file, retainedFileCountLimit: null,
+                        preserveLogFilename: true, persistentFileRollingInterval: PersistentFileRollingInterval.Hour,
+                        rollOnEachProcessRun: false)
+                    .CreateLogger())
+                {
+                    timestamp = e1.Timestamp.DateTime.AddHours(hoursToAdd);
+                    Clock.SetTestDateTimeNow(timestamp);
+                    log.Write(e1);
+                }
+
+                File.SetLastWriteTime(file, e1.Timestamp.DateTime);
             }
         }
 

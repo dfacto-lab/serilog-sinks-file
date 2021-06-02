@@ -35,6 +35,7 @@ namespace Serilog.Sinks.PersistentFile
         readonly bool _rollOnFileSizeLimit;
         readonly FileLifecycleHooks _hooks;
         readonly bool _keepFilename;
+        readonly bool _rollOnEachProcessRun;
 
         readonly object _syncRoot = new object();
         bool _isDisposed;
@@ -42,7 +43,7 @@ namespace Serilog.Sinks.PersistentFile
         IFileSink _currentFile;
         int? _currentFileSequence;
 
-        private readonly object syncLock = new object();
+        private readonly object _syncLock = new object();
 
 
         public RollingFileSink(string path,
@@ -55,7 +56,8 @@ namespace Serilog.Sinks.PersistentFile
             PersistentFileRollingInterval persistentFileRollingInterval,
             bool rollOnFileSizeLimit,
             FileLifecycleHooks hooks,
-            bool keepFilename = false)
+            bool keepFilename = false,
+            bool rollOnEachProcessRun = true)
         {
             if (path == null) throw new ArgumentNullException(nameof(path));
             if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0)
@@ -74,6 +76,7 @@ namespace Serilog.Sinks.PersistentFile
             _rollOnFileSizeLimit = rollOnFileSizeLimit;
             _hooks = hooks;
             _keepFilename = keepFilename;
+            _rollOnEachProcessRun = rollOnEachProcessRun;
         }
 
         public void Emit(LogEvent logEvent)
@@ -122,7 +125,6 @@ namespace Serilog.Sinks.PersistentFile
 
             // We only try periodically because repeated failures
             // to open log files REALLY slow an app down.
-            _nextCheckpoint = _roller.GetNextCheckpoint(now) ?? now.AddMinutes(30);
 
             var existingFiles = Enumerable.Empty<string>();
             try
@@ -174,12 +176,12 @@ namespace Serilog.Sinks.PersistentFile
                 //we lock this portion of the code to avoid another process in shared mode to move the file
                 //at the same time we are moving it. It might result in a missing file exception, because the second thread will try to move a file that has
                 //been already moved.
-                lock (syncLock)
+                lock (_syncLock)
                 {
                     _roller.GetLogFilePath(out var currentPath);
                     var fileInfo = new FileInfo(currentPath);
                     //we check of we have reach file size limit, if not we keep the same file. If we dont have roll on file size enable, we will create a new file as soon as one exists even if it is empty.
-                    if (File.Exists(currentPath) && (_rollOnFileSizeLimit ? fileInfo.Length >= _fileSizeLimitBytes : fileInfo.Length > 0))
+                    if (File.Exists(currentPath) && MustRoll(now) && (_rollOnFileSizeLimit ? fileInfo.Length >= _fileSizeLimitBytes : fileInfo.Length > 0))
                     {
                         for (var attempt = 0; attempt < maxAttempts; attempt++)
                         {
@@ -191,7 +193,7 @@ namespace Serilog.Sinks.PersistentFile
                             }
                             catch (IOException ex)
                             {
-                                if (IOErrors.IsLockedFile(ex))
+                                if (IOErrors.IsLockedFile(ex) || File.Exists(path))
                                 {
                                     SelfLog.WriteLine(
                                         "File target {0} was locked, attempting to open next in sequence (attempt {1})",
@@ -267,6 +269,22 @@ namespace Serilog.Sinks.PersistentFile
                     return;
                 }
             }
+
+            _nextCheckpoint = _roller.GetNextCheckpoint(now) ?? now.AddMinutes(30);
+        }
+
+        private bool MustRoll(DateTime now)
+        {
+            if (_rollOnEachProcessRun)
+                return true;
+
+            var currentCheckpoint = _roller.GetCurrentCheckpoint(now);
+            if (!currentCheckpoint.HasValue)
+                return false;
+
+            _roller.GetLogFilePath(out var currentPath);
+            var fileInfo = new FileInfo(currentPath);
+            return fileInfo.Exists && fileInfo.LastWriteTime < currentCheckpoint;
         }
 
         void ApplyRetentionPolicy(string currentFilePath)
