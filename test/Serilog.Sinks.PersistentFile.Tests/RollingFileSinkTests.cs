@@ -246,7 +246,8 @@ namespace Serilog.Sinks.PersistentFile.Tests
             var fileName = "mylogfile.txt";
             using (var temp = new TempFolder())
             using (var log = new LoggerConfiguration()
-                .WriteTo.PersistentFile(Path.Combine(temp.Path, fileName),  retainedFileCountLimit: null, preserveLogFilename: true, persistentFileRollingInterval: PersistentFileRollingInterval.Day)
+                .WriteTo.PersistentFile(Path.Combine(temp.Path, fileName), retainedFileCountLimit: null,
+                    preserveLogFilename: true, persistentFileRollingInterval: PersistentFileRollingInterval.Day)
                 .CreateLogger())
             {
                 LogEvent e1 = Some.InformationEvent(),
@@ -264,12 +265,9 @@ namespace Serilog.Sinks.PersistentFile.Tests
                     .ToArray();
 
                 Assert.Equal(3, files.Length);
-                Console.Out.WriteLine(files[0]);
-                Console.Out.WriteLine(files[1]);
-                Console.Out.WriteLine(files[2]);
                 Assert.True(files[0].EndsWith(fileName), files[0]);
-                Assert.True(files[1].EndsWith(DateTime.Today.ToString("yyyyMMdd")+".txt"), files[1]);
-                Assert.True(files[2].EndsWith(DateTime.Today.ToString("yyyyMMdd")+"_001.txt"), files[2]);
+                Assert.True(files[1].EndsWith(e2.Timestamp.DateTime.ToString("yyyyMMdd")+".txt"), files[1]);
+                Assert.True(files[2].EndsWith(e3.Timestamp.DateTime.ToString("yyyyMMdd")+".txt"), files[2]);
             }
         }
 
@@ -356,7 +354,7 @@ namespace Serilog.Sinks.PersistentFile.Tests
                 MakeRunAndWriteLog(temp, 0, out _);
                 MakeRunAndWriteLog(temp, 2, out var t1);
                 MakeRunAndWriteLog(temp, 2, out _);
-                MakeRunAndWriteLog(temp, 3, out _);
+                MakeRunAndWriteLog(temp, 3, out var t2);
 
                 var files = Directory.GetFiles(temp.Path)
                     .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
@@ -365,9 +363,9 @@ namespace Serilog.Sinks.PersistentFile.Tests
                 Assert.Equal(5, files.Length);
                 Assert.True(files[0].EndsWith(fileName), files[0]);
                 Assert.True(files[1].EndsWith(t0.ToString("yyyyMMddHH")+".txt"), files[1]);
-                Assert.True(files[2].EndsWith(t0.ToString("yyyyMMddHH")+"_001.txt"), files[2]);
-                Assert.True(files[3].EndsWith(t1.ToString("yyyyMMddHH")+".txt"), files[3]);
-                Assert.True(files[4].EndsWith(t1.ToString("yyyyMMddHH")+"_001.txt"), files[4]);
+                Assert.True(files[2].EndsWith(t1.ToString("yyyyMMddHH")+".txt"), files[2]);
+                Assert.True(files[3].EndsWith(t1.ToString("yyyyMMddHH")+"_001.txt"), files[3]);
+                Assert.True(files[4].EndsWith(t2.ToString("yyyyMMddHH")+".txt"), files[4]);
             }
 
             void MakeRunAndWriteLog(TempFolder temp, int hoursToAdd, out DateTime timestamp)
@@ -381,6 +379,50 @@ namespace Serilog.Sinks.PersistentFile.Tests
                     .CreateLogger())
                 {
                     var e1 = Some.InformationEvent();
+                    timestamp = e1.Timestamp.DateTime.AddHours(hoursToAdd);
+                    Clock.SetTestDateTimeNow(timestamp);
+                    log.Write(e1);
+                }
+
+                File.SetLastWriteTime(file, timestamp);
+            }
+        }
+
+        [Fact]
+        static void LogFilenameRollsCorrectlyWhenRollOnEachProcessRunAndUseLastWriteAsTimestampAreTrue()
+        {
+            var fileName = "mylogfile.txt";
+            using (var temp = new TempFolder())
+            {
+                MakeRunAndWriteLog(temp, 0, out var t0);
+                MakeRunAndWriteLog(temp, 0, out _);
+                MakeRunAndWriteLog(temp, 2, out var t1);
+                MakeRunAndWriteLog(temp, 2, out _);
+                MakeRunAndWriteLog(temp, 3, out _);
+
+                var files = Directory.GetFiles(temp.Path)
+                    .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+
+                Assert.Equal(5, files.Length);
+                Assert.True(files[0].EndsWith(fileName), files[0]);
+                Assert.True(files[1].EndsWith(t0.ToString("yyyyMMddHH")+".txt"), string.Join(Environment.NewLine ,files));
+                Assert.True(files[2].EndsWith(t0.ToString("yyyyMMddHH")+"_001.txt"), string.Join(Environment.NewLine ,files));
+                Assert.True(files[3].EndsWith(t1.ToString("yyyyMMddHH")+".txt"), string.Join(Environment.NewLine ,files));
+                Assert.True(files[4].EndsWith(t1.ToString("yyyyMMddHH")+"_001.txt"), string.Join(Environment.NewLine ,files));
+            }
+
+            void MakeRunAndWriteLog(TempFolder temp, int hoursToAdd, out DateTime timestamp)
+            {
+                string file = Path.Combine(temp.Path, fileName);
+
+                using (var log = new LoggerConfiguration()
+                    .WriteTo.PersistentFile(file, retainedFileCountLimit: null,
+                        preserveLogFilename: true, persistentFileRollingInterval: PersistentFileRollingInterval.Hour,
+                        rollOnEachProcessRun: true, useLastWriteAsTimestamp: true)
+                    .CreateLogger())
+                {
+                    var e1 = Some.InformationEvent(DateTimeOffset.Parse("2021-06-03"));
                     timestamp = e1.Timestamp.DateTime.AddHours(hoursToAdd);
                     Clock.SetTestDateTimeNow(timestamp);
                     log.Write(e1);
