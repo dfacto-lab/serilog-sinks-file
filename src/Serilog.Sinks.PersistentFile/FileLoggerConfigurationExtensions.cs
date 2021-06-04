@@ -236,6 +236,7 @@ namespace Serilog
         /// <param name="hooks">Optionally enables hooking into log file lifecycle events.</param>
         /// <param name="preserveLogFilename">Avoid the log file name to change after each roll, on roll the log file is copied to a new file and the current file is restarted empty</param>
         /// <param name="rollOnEachProcessRun">Roll the name of the log file every time the process starts.</param>
+        /// <param name="useLastWriteAsTimestamp">When the file is rolled, the last write timestamp of the log file is used instead of the current timestamp.</param>
         /// <returns>Configuration object allowing method chaining.</returns>
         public static LoggerConfiguration PersistentFile(
             this LoggerSinkConfiguration sinkConfiguration,
@@ -254,7 +255,8 @@ namespace Serilog
             Encoding encoding = null,
             FileLifecycleHooks hooks = null,
             bool preserveLogFilename = true,
-            bool rollOnEachProcessRun = true)
+            bool rollOnEachProcessRun = true,
+            bool useLastWriteAsTimestamp = false)
         {
             if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));
             if (path == null) throw new ArgumentNullException(nameof(path));
@@ -264,7 +266,7 @@ namespace Serilog
             return PersistentFile(sinkConfiguration, formatter, path, restrictedToMinimumLevel, fileSizeLimitBytes,
                 levelSwitch, buffered, shared, flushToDiskInterval,
                 persistentFileRollingInterval, rollOnFileSizeLimit, retainedFileCountLimit, encoding, hooks,
-                preserveLogFilename, rollOnEachProcessRun);
+                preserveLogFilename, rollOnEachProcessRun, useLastWriteAsTimestamp);
         }
 
         /// <summary>
@@ -297,6 +299,7 @@ namespace Serilog
         /// <param name="hooks">Optionally enables hooking into log file lifecycle events.</param>
         /// <param name="preserveLogFilename">Preserve the name of the log file, and copy content on roll to a new file.</param>
         /// <param name="rollOnEachProcessRun">Roll the name of the log file every time the process starts.</param>
+        /// <param name="useLastWriteAsTimestamp">When the file is rolled, the last write timestamp of the log file is used instead of the current timestamp.</param>
         /// <returns>Configuration object allowing method chaining.</returns>
         public static LoggerConfiguration PersistentFile(
             this LoggerSinkConfiguration sinkConfiguration,
@@ -314,7 +317,8 @@ namespace Serilog
             Encoding encoding = null,
             FileLifecycleHooks hooks = null,
             bool preserveLogFilename = true,
-            bool rollOnEachProcessRun = true)
+            bool rollOnEachProcessRun = true,
+            bool useLastWriteAsTimestamp = false)
         {
             if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));
             if (formatter == null) throw new ArgumentNullException(nameof(formatter));
@@ -322,7 +326,7 @@ namespace Serilog
 
             return ConfigureFile(sinkConfiguration.Sink, formatter, path, restrictedToMinimumLevel, fileSizeLimitBytes, levelSwitch,
                 buffered, false, shared, flushToDiskInterval, encoding, persistentFileRollingInterval, rollOnFileSizeLimit,
-                retainedFileCountLimit, hooks, preserveLogFilename, rollOnEachProcessRun);
+                retainedFileCountLimit, hooks, preserveLogFilename, rollOnEachProcessRun, useLastWriteAsTimestamp);
         }
 
         /// <summary>
@@ -462,7 +466,8 @@ namespace Serilog
             int? retainedFileCountLimit,
             FileLifecycleHooks hooks,
             bool preserveLogFilename = true,
-            bool rollOnEachProcessRun = true)
+            bool rollOnEachProcessRun = true,
+            bool useLastWriteAsTimestamp = false)
         {
             if (addSink == null) throw new ArgumentNullException(nameof(addSink));
             if (formatter == null) throw new ArgumentNullException(nameof(formatter));
@@ -476,7 +481,7 @@ namespace Serilog
 
             if (rollOnFileSizeLimit || persistentFileRollingInterval != PersistentFileRollingInterval.Infinite)
             {
-                sink = new RollingFileSink(path, formatter, fileSizeLimitBytes, retainedFileCountLimit, encoding, buffered, shared, persistentFileRollingInterval, rollOnFileSizeLimit, hooks, preserveLogFilename, rollOnEachProcessRun);
+                sink = new RollingFileSink(path, formatter, fileSizeLimitBytes, retainedFileCountLimit, encoding, buffered, shared, persistentFileRollingInterval, rollOnFileSizeLimit, hooks, preserveLogFilename, rollOnEachProcessRun, useLastWriteAsTimestamp);
             }
             else
             {
