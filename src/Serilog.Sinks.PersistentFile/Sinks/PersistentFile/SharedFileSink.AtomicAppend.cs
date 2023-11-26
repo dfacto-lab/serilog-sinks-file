@@ -51,7 +51,7 @@ namespace Serilog.Sinks.PersistentFile
         /// <param name="encoding">Character encoding used to write the text file. The default is UTF-8 without BOM.</param>
         /// <returns>Configuration object allowing method chaining.</returns>
         /// <exception cref="IOException"></exception>
-        public SharedFileSink(string path, ITextFormatter textFormatter, long? fileSizeLimitBytes, Encoding encoding = null)
+        public SharedFileSink(string path, ITextFormatter textFormatter, long? fileSizeLimitBytes, Encoding? encoding = null)
         {
             if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0)
                 throw new ArgumentException("Negative value provided; file size limit must be non-negative");
@@ -70,11 +70,13 @@ namespace Serilog.Sinks.PersistentFile
             // exposed by .NET Core.
             _fileOutput = new FileStream(
                 path,
-                FileMode.Append,
-                FileSystemRights.AppendData,
-                FileShare.ReadWrite,
-                _fileStreamBufferLength,
-                FileOptions.None);
+                new FileStreamOptions{
+                    Access = FileAccess.Write,
+                    BufferSize = _fileStreamBufferLength,
+                    Mode = FileMode.Append,
+                    Options = FileOptions.None,
+                    Share = FileShare.ReadWrite
+                });
 
             _writeBuffer = new MemoryStream();
             _output = new StreamWriter(_writeBuffer,
@@ -99,11 +101,12 @@ namespace Serilog.Sinks.PersistentFile
 
                         _fileOutput = new FileStream(
                             _path,
-                            FileMode.Append,
-                            FileSystemRights.AppendData,
-                            FileShare.ReadWrite,
-                            length,
-                            FileOptions.None);
+                            new FileStreamOptions{
+                                Access = FileAccess.ReadWrite,
+                                Mode = FileMode.Append,
+                                Options = FileOptions.None,
+                                Share = FileShare.ReadWrite
+                            });
                         _fileStreamBufferLength = length;
 
                         oldOutput.Dispose();

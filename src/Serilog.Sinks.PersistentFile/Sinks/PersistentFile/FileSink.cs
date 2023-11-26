@@ -31,7 +31,7 @@ namespace Serilog.Sinks.PersistentFile
         readonly long? _fileSizeLimitBytes;
         readonly bool _buffered;
         readonly object _syncRoot = new object();
-        readonly WriteCountingStream _countingStreamWrapper;
+        readonly WriteCountingStream? _countingStreamWrapper;
 
         /// <summary>Construct a <see cref="FileSink"/>.</summary>
         /// <param name="path">Path to the file.</param>
@@ -46,7 +46,7 @@ namespace Serilog.Sinks.PersistentFile
         /// <remarks>This constructor preserves compatibility with early versions of the public API. New code should not depend on this type.</remarks>
         /// <exception cref="IOException"></exception>
         [Obsolete("This type and constructor will be removed from the public API in a future version; use `WriteTo.PersistentFile()` instead.")]
-        public FileSink(string path, ITextFormatter textFormatter, long? fileSizeLimitBytes, Encoding encoding = null, bool buffered = false)
+        public FileSink(string path, ITextFormatter textFormatter, long? fileSizeLimitBytes, Encoding? encoding = null, bool buffered = false)
             : this(path, textFormatter, fileSizeLimitBytes, encoding, buffered, null)
         {
         }
@@ -56,9 +56,9 @@ namespace Serilog.Sinks.PersistentFile
             string path,
             ITextFormatter textFormatter,
             long? fileSizeLimitBytes,
-            Encoding encoding,
+            Encoding? encoding,
             bool buffered,
-            FileLifecycleHooks hooks)
+            FileLifecycleHooks? hooks)
         {
             if (path == null) throw new ArgumentNullException(nameof(path));
             if (fileSizeLimitBytes.HasValue && fileSizeLimitBytes < 0) throw new ArgumentException("Negative value provided; file size limit must be non-negative.");
@@ -97,7 +97,7 @@ namespace Serilog.Sinks.PersistentFile
             {
                 if (_fileSizeLimitBytes != null)
                 {
-                    if (_countingStreamWrapper.CountedLength >= _fileSizeLimitBytes.Value)
+                    if (_countingStreamWrapper?.CountedLength >= _fileSizeLimitBytes.Value)
                         return false;
                 }
 
