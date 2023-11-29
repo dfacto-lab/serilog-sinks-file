@@ -9,11 +9,12 @@
 
   <ItemGroup>
     <PackageReference Include="serilog" Version="3.1.1" />
-    <PackageReference Include="serilog.sinks.console" Version="5.0.0" />
+    <PackageReference Include="serilog.sinks.console" Version="5.0.1" />
   </ItemGroup>
 
   <PropertyGroup>
     <DefineConstants>$(DefineConstants);ATOMIC_APPEND;HRESULTS</DefineConstants>
+    <AssemblyVersion>2.1.0.0</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>

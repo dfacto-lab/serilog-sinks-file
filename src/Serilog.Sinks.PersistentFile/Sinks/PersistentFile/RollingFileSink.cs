@@ -42,7 +42,6 @@ namespace Serilog.Sinks.PersistentFile
         bool _isDisposed;
         DateTime? _nextCheckpoint;
         IFileSink? _currentFile;
-        int? _currentFileSequence;
 
         private readonly object _syncLock = new object();
 
@@ -121,16 +120,10 @@ namespace Serilog.Sinks.PersistentFile
             // to open log files REALLY slow an app down.
 
             var existingFiles = Enumerable.Empty<string>();
-            try
+            if (Directory.Exists(_roller.LogFileDirectory))
             {
-                if (Directory.Exists(_roller.LogFileDirectory))
-                {
-                    existingFiles = Directory.GetFiles(_roller.LogFileDirectory, _roller.DirectorySearchPattern)
-                        .Select(p=>Path.GetFileName(p));
-                }
-            }
-            catch (DirectoryNotFoundException)
-            {
+                existingFiles = Directory.GetFiles(_roller.LogFileDirectory, _roller.DirectorySearchPattern)
+                    .Select(p => Path.GetFileName(p));
             }
 
             var latestForThisCheckpoint = _roller
@@ -159,15 +152,15 @@ namespace Serilog.Sinks.PersistentFile
                     {
                         for (var attempt = 0; attempt < maxAttempts; attempt++)
                         {
-                            for (var i=sequence;i>0;i--){
+                            for (var i = sequence; i > 0; i--)
+                            {
                                 _roller.GetLogFilePath(_useLastWriteAsTimestamp ? fileInfo.LastWriteTime : now,
-                                i+1, out var newPath);
+                                i + 1, out var newPath);
                                 _roller.GetLogFilePath(_useLastWriteAsTimestamp ? fileInfo.LastWriteTime : now,
                                 i, out var oldPath);
                                 try
                                 {
                                     System.IO.File.Move(oldPath, newPath);
-                                    _currentFileSequence = sequence;
                                 }
                                 catch (FileNotFoundException)
                                 {
@@ -180,16 +173,14 @@ namespace Serilog.Sinks.PersistentFile
                                         SelfLog.WriteLine(
                                             "File target {0} was locked or exists, attempting to open next in sequence (attempt {1})",
                                             newPath, attempt + 1);
-                                        continue;
                                     }
                                 }
                             }
                             _roller.GetLogFilePath(_useLastWriteAsTimestamp ? fileInfo.LastWriteTime : now,
-                                1, out var path);
+                                sequence > 1 ? 1 : sequence, out var path);
                             try
                             {
                                 System.IO.File.Move(currentPath, path);
-                                _currentFileSequence = sequence;
                             }
                             catch (IOException ex)
                             {
@@ -214,10 +205,10 @@ namespace Serilog.Sinks.PersistentFile
                     {
                         _currentFile = _shared
                             ?
-    #pragma warning disable 618
-                            (IFileSink) new SharedFileSink(currentPath, _textFormatter, _fileSizeLimitBytes, _encoding)
+#pragma warning disable 618
+                            (IFileSink)new SharedFileSink(currentPath, _textFormatter, _fileSizeLimitBytes, _encoding)
                             :
-    #pragma warning restore 618
+#pragma warning restore 618
                             new FileSink(currentPath, _textFormatter, _fileSizeLimitBytes, _encoding, _buffered, _hooks);
                     }
                     catch (IOException ex)
@@ -245,12 +236,11 @@ namespace Serilog.Sinks.PersistentFile
                         _currentFile = _shared
                             ?
 #pragma warning disable 618
-                            (IFileSink) new SharedFileSink(path, _textFormatter, _fileSizeLimitBytes, _encoding)
+                            (IFileSink)new SharedFileSink(path, _textFormatter, _fileSizeLimitBytes, _encoding)
                             :
 #pragma warning restore 618
                             new FileSink(path, _textFormatter, _fileSizeLimitBytes, _encoding, _buffered, _hooks);
 
-                        _currentFileSequence = sequence;
                     }
                     catch (IOException ex)
                     {
@@ -298,12 +288,12 @@ namespace Serilog.Sinks.PersistentFile
             // We consider the current file to exist, even if nothing's been written yet,
             // because files are only opened on response to an event being processed.
             var potentialMatches = Directory.GetFiles(_roller.LogFileDirectory, _roller.DirectorySearchPattern)
-                .Select(p=>Path.GetFileName(p))
-                .Union(new[] {currentFileName});
+                .Select(p => Path.GetFileName(p))
+                .Union(new[] { currentFileName });
 
             var newestFirst = _roller
                 .SelectMatches(potentialMatches)
-                .OrderByDescending(m => m.DateTime)
+                .OrderByDescending(m => m.DateTime ?? DateTime.MaxValue)
                 .ThenBy(m => m.SequenceNumber)
                 .Select(m => m.Filename);
 
