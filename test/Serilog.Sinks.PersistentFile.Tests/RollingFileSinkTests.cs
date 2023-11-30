@@ -205,7 +205,7 @@ namespace Serilog.Sinks.PersistentFile.Tests
         public void AssemblyVersionIsFixedAt210()
         {
             var assembly = typeof(FileLoggerConfigurationExtensions).GetTypeInfo().Assembly;
-            Assert.Equal("2.1.0.0", assembly.GetName().Version.ToString(4));
+            Assert.Equal("2.3.0.0", assembly.GetName().Version.ToString(4));
         }
 
         [Fact]
