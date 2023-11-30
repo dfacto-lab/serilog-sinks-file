@@ -1,7 +1,7 @@
 # Serilog.Sinks.PersistentFile [![Build status](https://ci.appveyor.com/api/projects/status/hh9gymy0n6tne46j?svg=true)](https://ci.appveyor.com/project/serilog/serilog-sinks-file) [![NuGet Version](http://img.shields.io/nuget/v/Serilog.Sinks.PersistentFile.svg?style=flat)](https://www.nuget.org/packages/Serilog.Sinks.PersistentFile/) [![Documentation](https://img.shields.io/badge/docs-wiki-yellow.svg)](https://github.com/serilog/serilog/wiki) [![Join the chat at https://gitter.im/serilog/serilog](https://img.shields.io/gitter/room/serilog/serilog.svg)](https://gitter.im/serilog/serilog)
 
 Writes [Serilog](https://serilog.net) events to one or more text files and preserves main log file name.
-It's based on https://github.com/serilog/serilog-sinks-file/, with a few modifications to keep same log file when rolling files.
+It's a fork of [`serilog-sinks-file`](https://github.com/serilog/serilog-sinks-file/), with a few modifications to keep same log file when rolling files.
 You can compile it by yoursef or get it on nuget.
 
 ### Getting started

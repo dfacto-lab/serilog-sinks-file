@@ -243,17 +243,17 @@ namespace Serilog
             string path,
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
             string outputTemplate = DefaultOutputTemplate,
-            IFormatProvider formatProvider = null,
+            IFormatProvider? formatProvider = null,
             long? fileSizeLimitBytes = DefaultFileSizeLimitBytes,
-            LoggingLevelSwitch levelSwitch = null,
+            LoggingLevelSwitch? levelSwitch = null,
             bool buffered = false,
             bool shared = false,
             TimeSpan? flushToDiskInterval = null,
             PersistentFileRollingInterval persistentFileRollingInterval = PersistentFileRollingInterval.Infinite,
             bool rollOnFileSizeLimit = false,
             int? retainedFileCountLimit = DefaultRetainedFileCountLimit,
-            Encoding encoding = null,
-            FileLifecycleHooks hooks = null,
+            Encoding? encoding = null,
+            FileLifecycleHooks? hooks = null,
             bool preserveLogFilename = true,
             bool rollOnEachProcessRun = true,
             bool useLastWriteAsTimestamp = false)
@@ -307,15 +307,15 @@ namespace Serilog
             string path,
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
             long? fileSizeLimitBytes = DefaultFileSizeLimitBytes,
-            LoggingLevelSwitch levelSwitch = null,
+            LoggingLevelSwitch? levelSwitch = null,
             bool buffered = false,
             bool shared = false,
             TimeSpan? flushToDiskInterval = null,
             PersistentFileRollingInterval persistentFileRollingInterval = PersistentFileRollingInterval.Infinite,
             bool rollOnFileSizeLimit = false,
             int? retainedFileCountLimit = DefaultRetainedFileCountLimit,
-            Encoding encoding = null,
-            FileLifecycleHooks hooks = null,
+            Encoding? encoding = null,
+            FileLifecycleHooks? hooks = null,
             bool preserveLogFilename = true,
             bool rollOnEachProcessRun = true,
             bool useLastWriteAsTimestamp = false)
@@ -402,10 +402,10 @@ namespace Serilog
             string path,
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
             string outputTemplate = DefaultOutputTemplate,
-            IFormatProvider formatProvider = null,
-            LoggingLevelSwitch levelSwitch = null,
-            Encoding encoding = null,
-            FileLifecycleHooks hooks = null)
+            IFormatProvider? formatProvider = null,
+            LoggingLevelSwitch? levelSwitch = null,
+            Encoding? encoding = null,
+            FileLifecycleHooks? hooks = null)
         {
             if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));
             if (path == null) throw new ArgumentNullException(nameof(path));
@@ -437,9 +437,9 @@ namespace Serilog
             ITextFormatter formatter,
             string path,
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
-            LoggingLevelSwitch levelSwitch = null,
-            Encoding encoding = null,
-            FileLifecycleHooks hooks = null)
+            LoggingLevelSwitch? levelSwitch = null,
+            Encoding? encoding = null,
+            FileLifecycleHooks? hooks = null)
         {
             if (sinkConfiguration == null) throw new ArgumentNullException(nameof(sinkConfiguration));
             if (formatter == null) throw new ArgumentNullException(nameof(formatter));
@@ -450,21 +450,21 @@ namespace Serilog
         }
 
         static LoggerConfiguration ConfigureFile(
-            this Func<ILogEventSink, LogEventLevel, LoggingLevelSwitch, LoggerConfiguration> addSink,
+            this Func<ILogEventSink, LogEventLevel, LoggingLevelSwitch?, LoggerConfiguration> addSink,
             ITextFormatter formatter,
             string path,
             LogEventLevel restrictedToMinimumLevel,
             long? fileSizeLimitBytes,
-            LoggingLevelSwitch levelSwitch,
+            LoggingLevelSwitch? levelSwitch,
             bool buffered,
             bool propagateExceptions,
             bool shared,
             TimeSpan? flushToDiskInterval,
-            Encoding encoding,
+            Encoding? encoding,
             PersistentFileRollingInterval persistentFileRollingInterval,
             bool rollOnFileSizeLimit,
             int? retainedFileCountLimit,
-            FileLifecycleHooks hooks,
+            FileLifecycleHooks? hooks,
             bool preserveLogFilename = true,
             bool rollOnEachProcessRun = true,
             bool useLastWriteAsTimestamp = false)

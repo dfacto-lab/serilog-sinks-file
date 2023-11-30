@@ -49,7 +49,7 @@ namespace Serilog.Sinks.PersistentFile
             _filenameMatcher = new Regex(
                 "^" +
                 Regex.Escape(_filenamePrefix) +
-                "(?<" + PeriodMatchGroup + ">\\d{" + _periodFormat.Length + "})" +
+                "(?<" + PeriodMatchGroup + ">\\d{" + _periodFormat.Length + "}){0,1}" +
                 "(?<" + SequenceNumberMatchGroup + ">_[0-9]{3,}){0,1}" +
                 Regex.Escape(_filenameSuffix) +
                 "$");
@@ -66,6 +66,9 @@ namespace Serilog.Sinks.PersistentFile
             var currentCheckpoint = GetCurrentCheckpoint(date);
 
             var tok = currentCheckpoint?.ToString(_periodFormat, CultureInfo.InvariantCulture) ?? "";
+
+            if (currentCheckpoint == null && sequenceNumber == null)
+                sequenceNumber = 1;
 
             if (sequenceNumber != null)
                 tok += "_" + sequenceNumber.Value.ToString("000", CultureInfo.InvariantCulture);

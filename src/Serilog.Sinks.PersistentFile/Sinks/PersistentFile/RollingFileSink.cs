@@ -15,6 +15,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using Serilog.Core;
 using Serilog.Debugging;
@@ -29,11 +30,11 @@ namespace Serilog.Sinks.PersistentFile
         readonly ITextFormatter _textFormatter;
         readonly long? _fileSizeLimitBytes;
         readonly int? _retainedFileCountLimit;
-        readonly Encoding _encoding;
+        readonly Encoding? _encoding;
         readonly bool _buffered;
         readonly bool _shared;
         readonly bool _rollOnFileSizeLimit;
-        readonly FileLifecycleHooks _hooks;
+        readonly FileLifecycleHooks? _hooks;
         readonly bool _keepFilename;
         readonly bool _rollOnEachProcessRun;
         readonly bool _useLastWriteAsTimestamp;
@@ -41,8 +42,7 @@ namespace Serilog.Sinks.PersistentFile
         readonly object _syncRoot = new object();
         bool _isDisposed;
         DateTime? _nextCheckpoint;
-        IFileSink _currentFile;
-        int? _currentFileSequence;
+        IFileSink? _currentFile;
 
         private readonly object _syncLock = new object();
 
@@ -51,12 +51,12 @@ namespace Serilog.Sinks.PersistentFile
             ITextFormatter textFormatter,
             long? fileSizeLimitBytes,
             int? retainedFileCountLimit,
-            Encoding encoding,
+            Encoding? encoding,
             bool buffered,
             bool shared,
             PersistentFileRollingInterval persistentFileRollingInterval,
             bool rollOnFileSizeLimit,
-            FileLifecycleHooks hooks,
+            FileLifecycleHooks? hooks,
             bool keepFilename = false,
             bool rollOnEachProcessRun = true,
             bool useLastWriteAsTimestamp = false)
@@ -108,21 +108,12 @@ namespace Serilog.Sinks.PersistentFile
             }
             else if (nextSequence || now >= _nextCheckpoint.Value)
             {
-                int? minSequence = null;
-                if (nextSequence)
-                {
-                    if (_currentFileSequence == null)
-                        minSequence = 1;
-                    else
-                        minSequence = _currentFileSequence.Value + 1;
-                }
-
                 CloseFile();
-                OpenFile(now, minSequence);
+                OpenFile(now);
             }
         }
 
-        void OpenFile(DateTime now, int? minSequence = null)
+        void OpenFile(DateTime now)
         {
             var currentCheckpoint = _roller.GetCurrentCheckpoint(now);
 
@@ -130,45 +121,10 @@ namespace Serilog.Sinks.PersistentFile
             // to open log files REALLY slow an app down.
 
             var existingFiles = Enumerable.Empty<string>();
-            try
+            if (Directory.Exists(_roller.LogFileDirectory))
             {
-                if (Directory.Exists(_roller.LogFileDirectory))
-                {
-                    existingFiles = Directory.GetFiles(_roller.LogFileDirectory, _roller.DirectorySearchPattern)
-                        .Select(Path.GetFileName);
-                }
-            }
-            catch (DirectoryNotFoundException)
-            {
-            }
-
-            var latestForThisCheckpoint = _roller
-                .SelectMatches(existingFiles)
-                .Where(m => m.DateTime == currentCheckpoint)
-                .OrderByDescending(m => m.SequenceNumber)
-                .FirstOrDefault();
-
-            var sequence = latestForThisCheckpoint?.SequenceNumber;
-            if (_keepFilename)
-            {
-                //Sequence number calculation is wrong when keeping filename. If there is an existing log file, latestForThisCheckpoint won't be null but will report
-                // a sequence number of 0 because filename will be (log.txt), if there are two files: sequence number will report 1 (log.txt, log-001.txt).
-                // But it should report 1 in the first case and 2 in the second case.
-                //
-                if (sequence == null)
-                {
-                    if (latestForThisCheckpoint != null)
-                        sequence = 1;
-                }
-                else
-                {
-                    sequence++;
-                }
-            }
-            if (minSequence != null)
-            {
-                if (sequence == null || sequence.Value < minSequence.Value)
-                    sequence = minSequence;
+                existingFiles = Directory.GetFiles(_roller.LogFileDirectory, _roller.DirectorySearchPattern)
+                    .Select(p => Path.GetFileName(p));
             }
 
             if (_keepFilename)
@@ -183,17 +139,62 @@ namespace Serilog.Sinks.PersistentFile
                 {
                     _roller.GetLogFilePath(out var currentPath);
                     var fileInfo = new FileInfo(currentPath);
+
+                    var latestForThisCheckpoint = _roller
+                        .SelectMatches(existingFiles)
+                        .Where(m => m.DateTime == currentCheckpoint || _useLastWriteAsTimestamp && m.DateTime == fileInfo.LastWriteTime)
+                        .OrderByDescending(m => m.SequenceNumber)
+                        .FirstOrDefault();
+
+                    //int? sequence = latestForThisCheckpoint is null ? null : latestForThisCheckpoint.SequenceNumber ?? 1;
+                    int? sequence = latestForThisCheckpoint?.SequenceNumber;
+
                     //we check of we have reach file size limit, if not we keep the same file. If we dont have roll on file size enable, we will create a new file as soon as one exists even if it is empty.
                     if (File.Exists(currentPath) && MustRoll(now) && (_rollOnFileSizeLimit ? fileInfo.Length >= _fileSizeLimitBytes : fileInfo.Length > 0))
                     {
                         for (var attempt = 0; attempt < maxAttempts; attempt++)
                         {
+                            for (var i = sequence - 1; i > 0; i--)
+                            {
+                                _roller.GetLogFilePath(_useLastWriteAsTimestamp ? fileInfo.LastWriteTime : now,
+                                i + 1, out var newPath);
+                                _roller.GetLogFilePath(_useLastWriteAsTimestamp ? fileInfo.LastWriteTime : now,
+                                i, out var oldPath);
+                                try
+                                {
+                                    System.IO.File.Move(oldPath, newPath);
+                                }
+                                catch (FileNotFoundException)
+                                {
+                                    SelfLog.WriteLine("File {0 not found, skipping it}", oldPath);
+                                }
+                                catch (IOException ex)
+                                {
+                                    if (IOErrors.IsLockedFile(ex) || File.Exists(newPath))
+                                    {
+                                        SelfLog.WriteLine(
+                                            "File target {0} was locked or exists, attempting to open next in sequence (attempt {1})",
+                                            newPath, attempt + 1);
+                                    }
+                                }
+                            }
+
+                            //check if we have a date roll that has to get an index
+                            if (latestForThisCheckpoint is not null && latestForThisCheckpoint.SequenceNumber is null && !latestForThisCheckpoint.Filename.Equals(new FileInfo(currentPath).Name))
+                            {
+                                _roller.GetLogFilePath(_useLastWriteAsTimestamp ? fileInfo.LastWriteTime : now,
+                                1, out var dateRolledFile);
+                                _roller.GetLogFilePath(_useLastWriteAsTimestamp ? fileInfo.LastWriteTime : now,
+                                latestForThisCheckpoint.SequenceNumber, out var latestForThisCheckPointFile);
+                                System.IO.File.Move(latestForThisCheckPointFile, dateRolledFile);
+                            }
+
+                            // move current file to datetime formatted file or first backup file
                             _roller.GetLogFilePath(_useLastWriteAsTimestamp ? fileInfo.LastWriteTime : now,
-                                sequence, out var path);
+                                sequence > 1 ? 1 : sequence, out var path);
                             try
                             {
                                 System.IO.File.Move(currentPath, path);
-                                _currentFileSequence = sequence;
                             }
                             catch (IOException ex)
                             {
@@ -218,10 +219,10 @@ namespace Serilog.Sinks.PersistentFile
                     {
                         _currentFile = _shared
                             ?
-    #pragma warning disable 618
-                            (IFileSink) new SharedFileSink(currentPath, _textFormatter, _fileSizeLimitBytes, _encoding)
+#pragma warning disable 618
+                            (IFileSink)new SharedFileSink(currentPath, _textFormatter, _fileSizeLimitBytes, _encoding)
                             :
-    #pragma warning restore 618
+#pragma warning restore 618
                             new FileSink(currentPath, _textFormatter, _fileSizeLimitBytes, _encoding, _buffered, _hooks);
                     }
                     catch (IOException ex)
@@ -239,6 +240,13 @@ namespace Serilog.Sinks.PersistentFile
             }
             else
             {
+                var latestForThisCheckpoint = _roller
+                    .SelectMatches(existingFiles)
+                    .Where(m => m.DateTime == currentCheckpoint)
+                    .OrderByDescending(m => m.SequenceNumber)
+                    .FirstOrDefault();
+
+                var sequence = latestForThisCheckpoint?.SequenceNumber;
                 const int maxAttempts = 3;
                 for (var attempt = 0; attempt < maxAttempts; attempt++)
                 {
@@ -249,12 +257,11 @@ namespace Serilog.Sinks.PersistentFile
                         _currentFile = _shared
                             ?
 #pragma warning disable 618
-                            (IFileSink) new SharedFileSink(path, _textFormatter, _fileSizeLimitBytes, _encoding)
+                            (IFileSink)new SharedFileSink(path, _textFormatter, _fileSizeLimitBytes, _encoding)
                             :
 #pragma warning restore 618
                             new FileSink(path, _textFormatter, _fileSizeLimitBytes, _encoding, _buffered, _hooks);
 
-                        _currentFileSequence = sequence;
                     }
                     catch (IOException ex)
                     {
@@ -302,18 +309,18 @@ namespace Serilog.Sinks.PersistentFile
             // We consider the current file to exist, even if nothing's been written yet,
             // because files are only opened on response to an event being processed.
             var potentialMatches = Directory.GetFiles(_roller.LogFileDirectory, _roller.DirectorySearchPattern)
-                .Select(Path.GetFileName)
-                .Union(new[] {currentFileName});
+                .Select(p => Path.GetFileName(p))
+                .Union(new[] { currentFileName });
 
             var newestFirst = _roller
                 .SelectMatches(potentialMatches)
-                .OrderByDescending(m => m.DateTime)
-                .ThenByDescending(m => m.SequenceNumber)
+                .OrderByDescending(m => m.DateTime ?? DateTime.MaxValue)
+                .ThenBy(m => m.SequenceNumber ?? int.MinValue)
                 .Select(m => m.Filename);
 
             var toRemove = newestFirst
                 .Where(n => _keepFilename || StringComparer.OrdinalIgnoreCase.Compare(currentFileName, n) != 0)
-                .Skip(_retainedFileCountLimit.Value - 1)
+                .Skip(_retainedFileCountLimit.Value)
                 .ToList();
 
             foreach (var obsolete in toRemove)

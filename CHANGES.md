@@ -1,3 +1,9 @@
+2.3.0
+ - Upgraded to dotnet 8
+ - removed dotnetcoreapp2 and net47
+ - fixed file index so it will not exceed reainedFileCountLimit
+ - fixed ordering of datetime base rollover
+
 2.2.0
  - #9 - default to UTF-8 encoding without BOM
 
