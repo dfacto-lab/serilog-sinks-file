@@ -455,6 +455,76 @@ namespace Serilog.Sinks.PersistentFile.Tests
             temp.Dispose();
         }
 
+        [Fact]
+        public void HighestIndexShouldBeOneLessThanRetaindFileCountLimit()
+        {
+            var fileName = Some.String() + ".txt";
+            using (var temp = new TempFolder())
+            using (var log = new LoggerConfiguration()
+                .WriteTo.PersistentFile(Path.Combine(temp.Path, fileName), rollOnFileSizeLimit: true, fileSizeLimitBytes: 1, preserveLogFilename: true, retainedFileCountLimit: 3)
+                .CreateLogger())
+            {
+                LogEvent e1 = Some.InformationEvent(),
+                    e2 = Some.InformationEvent(e1.Timestamp),
+                    e3 = Some.InformationEvent(e2.Timestamp),
+                    e4 = Some.InformationEvent(e3.Timestamp);
+
+                log.Write(e1); log.Write(e2); log.Write(e3); log.Write(e4);
+
+                var files = Directory.GetFiles(temp.Path)
+                    .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+                Assert.Equal(3, files.Length);
+                Assert.True(files[0].EndsWith(fileName), files[0]);
+                Assert.True(files[1].EndsWith("_001.txt"), files[1]);
+                Assert.True(files[2].EndsWith("_002.txt"), files[2]);
+            }
+        }
+
+        [Fact]
+        public void HighestIndexRolloverWithTimeShouldBeTwoLessThanRetaindFileCountLimit()
+        {
+            var fileName = Some.String() + ".txt";
+            using (var temp = new TempFolder())
+            {
+                MakeRunAndWriteLog(temp, 0);
+                MakeRunAndWriteLog(temp, 0);
+                MakeRunAndWriteLog(temp, 2);
+                MakeRunAndWriteLog(temp, 2);
+                MakeRunAndWriteLog(temp, 4);
+                MakeRunAndWriteLog(temp, 4);
+                MakeRunAndWriteLog(temp, 6);
+
+                var files = Directory.GetFiles(temp.Path)
+                    .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+                Assert.Equal(3, files.Length);
+                Assert.True(files[0].EndsWith(fileName), files[0]);
+                Assert.True(files[1].EndsWith("04.txt"), files[1]);
+                Assert.True(files[2].EndsWith("04_001.txt"), files[2]);
+            }
+
+            void MakeRunAndWriteLog(TempFolder temp, int hoursToAdd)
+            {
+                string file = Path.Combine(temp.Path, fileName);
+                DateTime timestamp;
+
+                using (var log = new LoggerConfiguration()
+                    .WriteTo.PersistentFile(file, retainedFileCountLimit: 3,
+                        preserveLogFilename: true, persistentFileRollingInterval: PersistentFileRollingInterval.Hour, fileSizeLimitBytes: 1, rollOnFileSizeLimit: true,
+                        rollOnEachProcessRun: true, useLastWriteAsTimestamp: true)
+                    .CreateLogger())
+                {
+                    var e1 = Some.InformationEvent(DateTimeOffset.Parse("2021-06-03"));
+                    timestamp = e1.Timestamp.DateTime.AddHours(hoursToAdd);
+                    Clock.SetTestDateTimeNow(timestamp);
+                    log.Write(e1);
+                }
+
+                File.SetLastWriteTime(file, timestamp);
+            }
+        }
+
         static void TestRollingEventSequence(params LogEvent[] events)
         {
             TestRollingEventSequence(

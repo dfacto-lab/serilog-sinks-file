@@ -15,6 +15,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using Serilog.Core;
 using Serilog.Debugging;
@@ -126,14 +127,6 @@ namespace Serilog.Sinks.PersistentFile
                     .Select(p => Path.GetFileName(p));
             }
 
-            var latestForThisCheckpoint = _roller
-                .SelectMatches(existingFiles)
-                .Where(m => m.DateTime == currentCheckpoint)
-                .OrderByDescending(m => m.SequenceNumber)
-                .FirstOrDefault();
-
-            var sequence = latestForThisCheckpoint?.SequenceNumber;
-
             if (_keepFilename)
             {
                 const int maxAttempts = 3;
@@ -147,12 +140,21 @@ namespace Serilog.Sinks.PersistentFile
                     _roller.GetLogFilePath(out var currentPath);
                     var fileInfo = new FileInfo(currentPath);
 
+                    var latestForThisCheckpoint = _roller
+                        .SelectMatches(existingFiles)
+                        .Where(m => m.DateTime == currentCheckpoint || _useLastWriteAsTimestamp && m.DateTime == fileInfo.LastWriteTime)
+                        .OrderByDescending(m => m.SequenceNumber)
+                        .FirstOrDefault();
+
+                    //int? sequence = latestForThisCheckpoint is null ? null : latestForThisCheckpoint.SequenceNumber ?? 1;
+                    int? sequence = latestForThisCheckpoint?.SequenceNumber;
+
                     //we check of we have reach file size limit, if not we keep the same file. If we dont have roll on file size enable, we will create a new file as soon as one exists even if it is empty.
                     if (File.Exists(currentPath) && MustRoll(now) && (_rollOnFileSizeLimit ? fileInfo.Length >= _fileSizeLimitBytes : fileInfo.Length > 0))
                     {
                         for (var attempt = 0; attempt < maxAttempts; attempt++)
                         {
-                            for (var i = sequence; i > 0; i--)
+                            for (var i = sequence - 1; i > 0; i--)
                             {
                                 _roller.GetLogFilePath(_useLastWriteAsTimestamp ? fileInfo.LastWriteTime : now,
                                 i + 1, out var newPath);
@@ -176,6 +178,18 @@ namespace Serilog.Sinks.PersistentFile
                                     }
                                 }
                             }
+
+                            //check if we have a date roll that has to get an index
+                            if (latestForThisCheckpoint is not null && latestForThisCheckpoint.SequenceNumber is null && !latestForThisCheckpoint.Filename.Equals(new FileInfo(currentPath).Name))
+                            {
+                                _roller.GetLogFilePath(_useLastWriteAsTimestamp ? fileInfo.LastWriteTime : now,
+                                1, out var dateRolledFile);
+                                _roller.GetLogFilePath(_useLastWriteAsTimestamp ? fileInfo.LastWriteTime : now,
+                                latestForThisCheckpoint.SequenceNumber, out var latestForThisCheckPointFile);
+                                System.IO.File.Move(latestForThisCheckPointFile, dateRolledFile);
+                            }
+
+                            // move current file to datetime formatted file or first backup file
                             _roller.GetLogFilePath(_useLastWriteAsTimestamp ? fileInfo.LastWriteTime : now,
                                 sequence > 1 ? 1 : sequence, out var path);
                             try
@@ -226,6 +240,13 @@ namespace Serilog.Sinks.PersistentFile
             }
             else
             {
+                var latestForThisCheckpoint = _roller
+                    .SelectMatches(existingFiles)
+                    .Where(m => m.DateTime == currentCheckpoint)
+                    .OrderByDescending(m => m.SequenceNumber)
+                    .FirstOrDefault();
+
+                var sequence = latestForThisCheckpoint?.SequenceNumber;
                 const int maxAttempts = 3;
                 for (var attempt = 0; attempt < maxAttempts; attempt++)
                 {
@@ -294,7 +315,7 @@ namespace Serilog.Sinks.PersistentFile
             var newestFirst = _roller
                 .SelectMatches(potentialMatches)
                 .OrderByDescending(m => m.DateTime ?? DateTime.MaxValue)
-                .ThenBy(m => m.SequenceNumber)
+                .ThenBy(m => m.SequenceNumber ?? int.MinValue)
                 .Select(m => m.Filename);
 
             var toRemove = newestFirst
