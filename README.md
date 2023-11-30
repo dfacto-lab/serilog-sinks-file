@@ -16,7 +16,7 @@ To configure the sink in C# code, call `WriteTo.PersistentFile()` during logger 
 
 ```csharp
 var log = new LoggerConfiguration()
-    .WriteTo.PersistentFile("log.txt", rollingInterval: RollingInterval.Day)
+    .WriteTo.PersistentFile("log.txt", persistentFileRollingInterval: RollingInterval.Day)
     .CreateLogger();
 ```
 
@@ -42,7 +42,7 @@ log20180702.txt
 
 ```csharp
 var log = new LoggerConfiguration()
-    .WriteTo.PersistentFile("log.txt", rollingInterval: RollingInterval.Day, preserveLogFilename: true)
+    .WriteTo.PersistentFile("log.txt", persistentFileRollingInterval: RollingInterval.Day, preserveLogFilename: true)
     .CreateLogger();
 ```
 
