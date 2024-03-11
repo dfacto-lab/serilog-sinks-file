@@ -152,6 +152,7 @@ namespace Serilog.Sinks.PersistentFile
                     //we check of we have reach file size limit, if not we keep the same file. If we dont have roll on file size enable, we will create a new file as soon as one exists even if it is empty.
                     if (File.Exists(currentPath) && MustRoll(now) && (_rollOnFileSizeLimit ? fileInfo.Length >= _fileSizeLimitBytes : fileInfo.Length > 0))
                     {
+
                         for (var attempt = 0; attempt < maxAttempts; attempt++)
                         {
                             for (var i = sequence - 1; i > 0; i--)
@@ -217,6 +218,7 @@ namespace Serilog.Sinks.PersistentFile
                     //now we open the current file
                     try
                     {
+
                         _currentFile = _shared
                             ?
 #pragma warning disable 618
