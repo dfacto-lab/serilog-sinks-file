@@ -1,6 +1,6 @@
-﻿#!/bin/bash
+﻿#!/bin/sh
 
-set -e 
+set -e
 dotnet --info
 dotnet --list-sdks
 dotnet restore
