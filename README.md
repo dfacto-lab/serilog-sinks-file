@@ -16,7 +16,7 @@ To configure the sink in C# code, call `WriteTo.PersistentFile()` during logger 
 
 ```csharp
 var log = new LoggerConfiguration()
-    .WriteTo.PersistentFile("log.txt", persistentFileRollingInterval: RollingInterval.Day)
+    .WriteTo.PersistentFile("log.txt", persistentFileRollingInterval: PersistentFileRollingInterval.Day)
     .CreateLogger();
 ```
 
@@ -42,7 +42,7 @@ log20180702.txt
 
 ```csharp
 var log = new LoggerConfiguration()
-    .WriteTo.PersistentFile("log.txt", persistentFileRollingInterval: RollingInterval.Day, preserveLogFilename: true)
+    .WriteTo.PersistentFile("log.txt", persistentFileRollingInterval: PersistentFileRollingInterval.Day, preserveLogFilename: true)
     .CreateLogger();
 ```
 
@@ -61,12 +61,12 @@ The limit can be changed or removed using the `fileSizeLimitBytes` parameter.
 For the same reason, only **the most recent 31 files** are retained by default (i.e. one long month). To change or remove this limit, pass the `retainedFileCountLimit` parameter.
 
 ```csharp
-    .WriteTo.PersistentFile("log.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: null)
+    .WriteTo.PersistentFile("log.txt", persistentFileRollingInterval: PersistentFileRollingInterval.Day, retainedFileCountLimit: null)
 ```
 
 ### Rolling policies
 
-To create a log file per day or other time period, specify a `rollingInterval` as shown in the examples above.
+To create a log file per day or other time period, specify a `persistentFileRollingInterval` as shown in the examples above.
 
 To roll when the file reaches `fileSizeLimitBytes`, specify `rollOnFileSizeLimit`:
 
@@ -82,7 +82,7 @@ log_001.txt
 log_002.txt
 ```
 
-Specifying both `rollingInterval` and `rollOnFileSizeLimit` will cause both policies to be applied, while specifying neither will result in all events being written to a single file.
+Specifying both `persistentFileRollingInterval` and `rollOnFileSizeLimit` will cause both policies to be applied, while specifying neither will result in all events being written to a single file.
 
 Old files will be cleaned up as per `retainedFileCountLimit` - the default is 31.
 
@@ -154,9 +154,12 @@ In your `appsettings.json` file, under the `Serilog` node, :
 ```json
 {
   "Serilog": {
-    "WriteTo": [
-      { "Name": "File", "Args": { "path": "log.txt", "rollingInterval": "Day" } }
-    ]
+    "WriteTo": [ {
+        "Name": "PersistentFile", "Args": {
+          "path": "log.txt",
+          "persistentFileRollingInterval": "Day"
+        }
+    } ]
   }
 }
 ```
